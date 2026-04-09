@@ -141,7 +141,7 @@ export function QuizTutorPanel({ card, wrongAnswer, onClose }: Props) {
       <div className="mx-4 mt-3 shrink-0 flex items-center justify-between rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2">
         <div className="flex flex-col">
           <span className="text-xs font-medium">{halfPerf ? '⚡ Half Performance' : '✨ Full Performance'}</span>
-          <span className="text-[10px] text-[var(--muted)]">{cost} credit{cost !== 1 ? 's' : ''} per message · {credits} left</span>
+          <span className="text-[10px] text-[var(--muted)]">{cost} credits per message · {credits} left</span>
         </div>
         <button
           onClick={() => setHalfPerf((v) => !v)}
