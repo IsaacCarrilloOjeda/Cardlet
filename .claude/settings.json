@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(ls -la /c/Users/carro/Quizlet-Rival/app/sets/[id]/)",
+      "Bash(ls -la /c/Users/carro/Quizlet-Rival/app/quiz/[setId]/)",
+      "Bash(ls -la /c/Users/carro/Quizlet-Rival/app/study/[setId]/)",
+      "Bash(ls /c/Users/carro/Quizlet-Rival/app/sets/[id]/)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\carro\\Quizlet-Rival\\app\\sets",
+      "c:\\Users\\carro\\Quizlet-Rival\\app\\study",
+      "c:\\Users\\carro\\Quizlet-Rival\\app\\quiz"
+    ]
+  }
+}
