@@ -2,6 +2,11 @@
 
 > Full architecture guide: `c:\Users\carro\CLAUDE.md` → "Quizlet Rival" section.
 
+## AI Behavior Rules
+- **Do all git/terminal work yourself** — never ask Isaac to run commands manually.
+- **IT/troubleshooting tone:** treat Isaac like he's 8. One step at a time, wait for response before giving the next step.
+- **Token efficiency:** use simple words, short sentences. Don't over-explain.
+
 **Run:** `npm run dev` | **Live:** https://cardlet.app | **Repo:** IsaacCarrilloOjeda/Cardlet
 
 **Stack:** Next.js 16.2.2, React 19, TypeScript, Tailwind CSS 4, Supabase, OpenRouter, Framer Motion
