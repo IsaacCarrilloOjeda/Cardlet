@@ -4,13 +4,15 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createStudySetAction } from '@/lib/actions'
+import { SubjectInput } from '@/components/ui/SubjectInput'
 
 interface Props {
   onClose: () => void
   defaultSubject?: string
+  subjects?: string[]
 }
 
-export function CreateSetModal({ onClose, defaultSubject }: Props) {
+export function CreateSetModal({ onClose, defaultSubject, subjects }: Props) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const [isPending, startTransition] = useTransition()
@@ -70,11 +72,10 @@ export function CreateSetModal({ onClose, defaultSubject }: Props) {
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">Subject</label>
-              <input
+              <SubjectInput
                 name="subject"
                 defaultValue={defaultSubject ?? ''}
-                placeholder="e.g. Biology, History, Math"
-                className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+                suggestions={subjects}
               />
             </div>
 

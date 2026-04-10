@@ -161,7 +161,7 @@ export function DashboardClient({ sets, dueCount }: Props) {
       )}
 
       {showModal && (
-        <CreateSetModal defaultSubject={activeFolder} onClose={() => setShowModal(false)} />
+        <CreateSetModal defaultSubject={activeFolder} subjects={folders} onClose={() => setShowModal(false)} />
       )}
     </div>
   ) : null
@@ -336,7 +336,7 @@ export function DashboardClient({ sets, dueCount }: Props) {
         )}
       </div>
 
-      {showModal && <CreateSetModal onClose={() => setShowModal(false)} />}
+      {showModal && <CreateSetModal subjects={folders} onClose={() => setShowModal(false)} />}
     </div>
   ) : null
 

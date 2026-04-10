@@ -33,7 +33,7 @@ export default async function ProfilePage() {
 
   return (
     <ProfileClient
-      profile={profile ?? { id: user.id, username: null, avatar_url: null, streak: 0, created_at: new Date().toISOString() }}
+      profile={profile ?? { id: user.id, username: null, avatar_url: null, streak: 0, created_at: new Date().toISOString(), is_private: false, role: 'student', quiz_correct: 0, quiz_attempts: 0 }}
       stats={stats}
       email={user.email ?? ''}
     />

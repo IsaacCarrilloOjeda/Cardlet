@@ -218,6 +218,14 @@ export function AITutorChat({ cardFront, cardBack, wrongAnswer, onClose }: Props
 
           {/* Input */}
           <form onSubmit={handleSubmit} className="flex gap-2 p-4 border-t border-[var(--card-border)] shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-[var(--card-border)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--foreground)] transition-colors shrink-0"
+              aria-label="Close tutor"
+            >
+              ← Back
+            </button>
             <input
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}

@@ -11,6 +11,8 @@ import { CompletionScreen } from '@/components/study/CompletionScreen'
 import { BarProgress } from '@/components/layout/BarProgress'
 import { useQuizSettings } from '@/hooks/useQuizSettings'
 import { useCredits, DISTRACTOR_COST } from '@/components/layout/CreditsContext'
+import { saveQuizResultAction } from '@/lib/actions'
+import type { TutorMessage } from './QuizTutorPanel'
 import type { Card } from '@/types'
 
 type QuizType = 'multiple-choice' | 'written' | 'match'
@@ -60,6 +62,8 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
   const [stats, setStats] = useState<QuizStats>({ again: 0, hard: 0, good: 0, easy: 0, perfect: 0 })
   const [isComplete, setIsComplete] = useState(false)
   const [showTutor, setShowTutor] = useState(false)
+  const [tutorHistories, setTutorHistories] = useState<Map<string, TutorMessage[]>>(new Map())
+  const hasSubmittedRef = useRef(false)
   const { settings } = useQuizSettings()
   // Cache of pre-fetched distractor options keyed by card id
   const prefetchCache = useRef<Map<string, string[]>>(new Map())
@@ -92,6 +96,18 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
       })
   }, [currentIndex, quizType, cards, creditBalance])
 
+  // Save quiz accuracy when session completes
+  useEffect(() => {
+    if (!isComplete || hasSubmittedRef.current || quizType === 'match') return
+    hasSubmittedRef.current = true
+    const correct = stats.perfect + stats.easy + stats.good
+    saveQuizResultAction(correct, cards.length).catch(console.error)
+  }, [isComplete, quizType, stats, cards.length])
+
+  function handleTutorHistoryChange(cardId: string, msgs: TutorMessage[]) {
+    setTutorHistories((prev) => new Map(prev).set(cardId, msgs))
+  }
+
   function handleResult(correct: boolean) {
     setStats((prev) => ({
       ...prev,
@@ -109,6 +125,7 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
   function handleMatchComplete(score: number, total: number) {
     setStats({ again: total - score, hard: 0, good: 0, easy: 0, perfect: score })
     setIsComplete(true)
+    saveQuizResultAction(score, total).catch(console.error)
   }
 
   function restart(newCards?: Card[]) {
@@ -116,6 +133,8 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
     setStats({ again: 0, hard: 0, good: 0, easy: 0, perfect: 0 })
     setIsComplete(false)
     setShowTutor(false)
+    setTutorHistories(new Map())
+    hasSubmittedRef.current = false
     if (newCards) setCards(newCards)
   }
 
@@ -324,9 +343,10 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
       <AnimatePresence>
         {showTutor && currentCard && (
           <QuizTutorPanel
-            key={currentCard.id}
             card={currentCard}
             onClose={() => setShowTutor(false)}
+            history={tutorHistories.get(currentCard.id) ?? []}
+            onHistoryChange={(msgs) => handleTutorHistoryChange(currentCard.id, msgs)}
           />
         )}
       </AnimatePresence>

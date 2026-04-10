@@ -26,6 +26,7 @@ export function ProfileClient({ profile, stats, email }: Props) {
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? '')
   const [isUploading, setIsUploading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [isPrivate, setIsPrivate] = useState(profile.is_private ?? false)
   const { accentKey, setAccent } = useTheme()
   const { settings: quizSettings, update: updateQuiz } = useQuizSettings()
 
@@ -53,6 +54,7 @@ export function ProfileClient({ profile, stats, email }: Props) {
     if (!formRef.current) return
     const formData = new FormData(formRef.current)
     formData.set('avatar_url', avatarUrl)
+    formData.set('is_private', String(isPrivate))
     setMessage(null)
     startTransition(async () => {
       await updateProfileAction(formData)
@@ -121,6 +123,27 @@ export function ProfileClient({ profile, stats, email }: Props) {
             placeholder="Choose a username"
             className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
           />
+        </div>
+
+        {/* Privacy toggle */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">Account Privacy</label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <div
+              onClick={() => setIsPrivate(!isPrivate)}
+              className={`relative h-6 w-11 rounded-full transition-colors shrink-0 mt-0.5 ${isPrivate ? 'bg-[var(--accent)]' : 'bg-[var(--card-border)]'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isPrivate ? 'translate-x-5' : ''}`} />
+            </div>
+            <div>
+              <span className="text-sm">{isPrivate ? 'Private account' : 'Public account'}</span>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                {isPrivate
+                  ? 'Your name and photo are hidden on leaderboards. Public sets remain visible.'
+                  : 'Your username and photo are visible on leaderboards.'}
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Email (read-only) */}

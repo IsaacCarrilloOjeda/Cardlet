@@ -436,10 +436,15 @@ export async function bulkInsertCardsAdmin(
 
 export interface LeaderboardEntry {
   user_id: string
-  username: string | null
+  display_name: string | null
+  avatar_url: string | null
+  is_private: boolean
+  role: string
   streak: number
   set_count: number
-  card_count: number
+  cards_studied: number
+  quiz_correct: number
+  quiz_attempts: number
   score: number
 }
 
@@ -448,6 +453,71 @@ export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
   const { data, error } = await admin.rpc('get_leaderboard', { lim: limit })
   if (error) throw error
   return (data ?? []) as LeaderboardEntry[]
+}
+
+export async function getLeaderboardV2(
+  mode = 'score',
+  subjectFilter: string | null = null,
+  limit = 10
+): Promise<LeaderboardEntry[]> {
+  const admin = createAdminClient()
+  const { data, error } = await admin.rpc('get_leaderboard_v2', {
+    mode,
+    subject_filter: subjectFilter,
+    lim: limit,
+  })
+  if (error) throw error
+  return (data ?? []) as LeaderboardEntry[]
+}
+
+export async function getDistinctSubjects(): Promise<string[]> {
+  const admin = createAdminClient()
+  const { data, error } = await admin.rpc('get_distinct_subjects')
+  if (error) throw error
+  return (data ?? []).map((row: { subject: string }) => row.subject)
+}
+
+export async function getPublicProfile(userId: string): Promise<Profile | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single()
+  if (error) return null
+  return data as Profile
+}
+
+export async function getPublicSetsByUser(userId: string): Promise<StudySet[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('study_sets')
+    .select('*, cards(count)')
+    .eq('user_id', userId)
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((row) => ({
+    ...row,
+    card_count: (row.cards as unknown as { count: number }[])[0]?.count ?? 0,
+    cards: undefined,
+  })) as StudySet[]
+}
+
+export async function getCardsStudiedCount(userId: string): Promise<number> {
+  const admin = createAdminClient() // admin needed — RLS blocks reading other users' progress
+  const { count, error } = await admin
+    .from('user_card_progress')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+  if (error) throw error
+  return count ?? 0
+}
+
+export async function setUserRole(userId: string, role: string): Promise<void> {
+  const admin = createAdminClient()
+  const { error } = await admin.from('profiles').update({ role }).eq('id', userId)
+  if (error) throw error
 }
 
 export async function copySetToUser(setId: string, userId: string): Promise<StudySet> {

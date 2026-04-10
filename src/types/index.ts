@@ -4,6 +4,10 @@ export interface Profile {
   avatar_url: string | null
   streak: number
   created_at: string
+  is_private: boolean
+  role: 'student' | 'teacher' | 'admin'
+  quiz_correct: number
+  quiz_attempts: number
 }
 
 export interface StudySet {

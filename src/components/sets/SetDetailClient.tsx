@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { updateStudySetAction } from '@/lib/actions'
 import { CardList } from './CardList'
 import { AIGenerateModal } from './AIGenerateModal'
+import { SubjectInput } from '@/components/ui/SubjectInput'
 import type { Card, StudySet } from '@/types'
 
 interface Props {
@@ -45,11 +46,10 @@ export function SetDetailClient({ set, cards }: Props) {
               required
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-lg font-bold focus:border-[var(--accent)] focus:outline-none"
             />
-            <input
+            <SubjectInput
               name="subject"
               defaultValue={set.subject ?? ''}
               placeholder="Subject"
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
             />
             <textarea
               name="description"

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { Card } from '@/types'
 import { useCredits, TUTOR_FULL_COST, TUTOR_HALF_COST } from '@/components/layout/CreditsContext'
 
-interface Message {
+export interface TutorMessage {
   role: 'user' | 'assistant'
   content: string
 }
@@ -14,28 +14,21 @@ interface Props {
   card: Card
   wrongAnswer?: string | null
   onClose: () => void
+  history: TutorMessage[]
+  onHistoryChange: (msgs: TutorMessage[]) => void
 }
 
 const SUGGESTED = ['Why is this true?', 'Give me an example', 'Explain it differently', 'How do I remember this?']
 
-export function QuizTutorPanel({ card, wrongAnswer, onClose }: Props) {
+export function QuizTutorPanel({ card, wrongAnswer, onClose, history, onHistoryChange }: Props) {
   const { credits, consumeCredits } = useCredits()
   const [halfPerf, setHalfPerf] = useState(false)
-  const [history, setHistory] = useState<Message[]>([])
   const [streaming, setStreaming] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [userInput, setUserInput] = useState('')
   const [noCreditsError, setNoCreditsError] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // Reset state whenever the card changes
-  useEffect(() => {
-    setHistory([])
-    setStreaming('')
-    setUserInput('')
-    setNoCreditsError(false)
-  }, [card.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -47,7 +40,7 @@ export function QuizTutorPanel({ card, wrongAnswer, onClose }: Props) {
 
   const cost = halfPerf ? TUTOR_HALF_COST : TUTOR_FULL_COST
 
-  async function stream(msgs: Message[]) {
+  async function stream(msgs: TutorMessage[]) {
     const ok = consumeCredits(cost)
     if (!ok) {
       setNoCreditsError(true)
@@ -87,10 +80,10 @@ export function QuizTutorPanel({ card, wrongAnswer, onClose }: Props) {
           } catch { /* ignore */ }
         }
       }
-      setHistory((prev) => [...prev, { role: 'assistant', content: accumulated }])
+      onHistoryChange([...msgs, { role: 'assistant', content: accumulated }])
       setStreaming('')
     } catch {
-      setHistory((prev) => [...prev, { role: 'assistant', content: 'Sorry, I had trouble responding. Please try again.' }])
+      onHistoryChange([...msgs, { role: 'assistant', content: 'Sorry, I had trouble responding. Please try again.' }])
     } finally {
       setIsLoading(false)
     }
@@ -100,16 +93,16 @@ export function QuizTutorPanel({ card, wrongAnswer, onClose }: Props) {
     e.preventDefault()
     const msg = userInput.trim()
     if (!msg || isLoading) return
-    const next: Message[] = [...history, { role: 'user', content: msg }]
-    setHistory(next)
+    const next: TutorMessage[] = [...history, { role: 'user', content: msg }]
+    onHistoryChange(next)
     setUserInput('')
     stream(next)
   }
 
   function handleSuggestion(prompt: string) {
     if (isLoading) return
-    const next: Message[] = [...history, { role: 'user', content: prompt }]
-    setHistory(next)
+    const next: TutorMessage[] = [...history, { role: 'user', content: prompt }]
+    onHistoryChange(next)
     stream(next)
   }
 
@@ -241,6 +234,14 @@ export function QuizTutorPanel({ card, wrongAnswer, onClose }: Props) {
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="flex gap-2 p-4 border-t border-[var(--card-border)] shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-xl border border-[var(--card-border)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--foreground)] transition-colors shrink-0"
+          aria-label="Close tutor"
+        >
+          ← Back
+        </button>
         <input
           ref={inputRef}
           value={userInput}

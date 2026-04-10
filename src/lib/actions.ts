@@ -25,6 +25,7 @@ import {
   getStudyMaterialById,
   createAdminStudySet,
   bulkInsertCardsAdmin,
+  setUserRole,
 } from '@/lib/db'
 import { computeSM2 } from '@/lib/sm2'
 import { chatComplete } from '@/lib/openrouter'
@@ -162,8 +163,20 @@ export async function updateProfileAction(formData: FormData): Promise<void> {
     id: user.id,
     username: (formData.get('username') as string) || null,
     avatar_url: (formData.get('avatar_url') as string) || null,
+    is_private: formData.get('is_private') === 'true',
   })
   revalidatePath('/profile')
+}
+
+export async function saveQuizResultAction(correct: number, total: number): Promise<void> {
+  const user = await getAuthUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('increment_quiz_stats', {
+    uid: user.id,
+    correct_delta: correct,
+    attempts_delta: total,
+  })
+  if (error) console.error('saveQuizResult failed:', error)
 }
 
 // ─── Explore ──────────────────────────────────────────────────────────────────
@@ -272,6 +285,12 @@ export async function adminDeleteMaterialAction(id: string, fileName: string): P
   if (!(await isAdminAuthenticated())) throw new Error('Unauthorized')
   await deleteStudyMaterial(id, fileName)
   revalidatePath('/admin/materials')
+}
+
+export async function adminSetUserRoleAction(userId: string, role: string): Promise<void> {
+  if (!(await isAdminAuthenticated())) throw new Error('Unauthorized')
+  await setUserRole(userId, role)
+  revalidatePath('/admin/users')
 }
 
 export async function adminConvertMaterialToSetAction(materialId: string): Promise<{ id: string }> {
