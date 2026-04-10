@@ -3,33 +3,65 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: #111111;
-  --card-border: #222222;
-  --muted: #6b7280;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
+  /* Core backgrounds */
+  --background:     #0d0f1a;
+  --surface:        #1a1d2e;
+  --surface-raised: #252840;
+  --card:           #1a1d2e;
+  --card-border:    #2e3150;
+
+  /* Text */
+  --foreground: #ffffff;
+  --muted:      #8b90b8;
+
+  /* Brand / accent */
+  --accent:       #4255ff;
+  --accent-hover: #3346e0;
+
+  /* CTA (yellow by default, user-overridable) */
+  --cta:      #ffcd1f;
+  --cta-text: #1a1a1a;
+
+  /* Teal highlight */
+  --teal:    #3ccfcf;
+
+  /* Semantic */
+  --danger:  #ef4444;
+  --success: #10b981;
 }
 
 [data-theme=light] {
-  --background: #ffffff;
-  --foreground: #171717;
-  --card: #f9fafb;
-  --card-border: #e5e7eb;
-  --muted: #9ca3af;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
+  --background:     #f4f5f9;
+  --surface:        #ffffff;
+  --surface-raised: #f0f1f8;
+  --card:           #ffffff;
+  --card-border:    #e0e2f0;
+  --foreground:     #1a1d2e;
+  --muted:          #6b7280;
+  --accent:         #4255ff;
+  --accent-hover:   #3346e0;
+  --cta:            #ffcd1f;
+  --cta-text:       #1a1a1a;
+  --teal:           #0b9e9e;
+  --danger:         #ef4444;
+  --success:        #10b981;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-border: var(--card-border);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
+  --color-background:     var(--background);
+  --color-surface:        var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-foreground:     var(--foreground);
+  --color-card:           var(--card);
+  --color-card-border:    var(--card-border);
+  --color-muted:          var(--muted);
+  --color-accent:         var(--accent);
+  --color-accent-hover:   var(--accent-hover);
+  --color-cta:            var(--cta);
+  --color-cta-text:       var(--cta-text);
+  --color-teal:           var(--teal);
+  --color-danger:         var(--danger);
+  --color-success:        var(--success);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

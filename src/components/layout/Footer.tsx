@@ -38,7 +38,7 @@ export function Footer() {
       <footer className="border-t border-[var(--card-border)] bg-[var(--background)] py-4 px-4 mt-auto">
         <div className="mx-auto max-w-7xl flex items-center justify-between gap-4 flex-wrap">
           <p className="text-xs text-[var(--muted)]">
-            © {new Date().getFullYear()} Smart Stack · AI-powered study platform
+            © {new Date().getFullYear()} Cardlet · AI-powered flashcards
           </p>
           <div className="flex items-center gap-3">
             <button

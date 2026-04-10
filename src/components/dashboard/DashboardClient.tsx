@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useEffect, useTransition } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import { StudySetCard } from './StudySetCard'
 import { CreateSetModal } from './CreateSetModal'
+import { DashboardSidebar } from './DashboardSidebar'
 import type { StudySet } from '@/types'
 import {
   renameFolderAction,
@@ -21,7 +23,7 @@ const DEFAULT_FOLDERS = ['New Subject']
 
 function getFolderStyle(): React.CSSProperties {
   return {
-    background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, var(--card)), var(--card))',
+    background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, var(--surface)), var(--surface))',
     borderColor: 'color-mix(in srgb, var(--accent) 35%, transparent)',
   }
 }
@@ -46,12 +48,10 @@ export function DashboardClient({ sets, dueCount }: Props) {
   const [newFolderName, setNewFolderName] = useState('')
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  // Two-option delete confirmation state
   const [deletingFolder, setDeletingFolder] = useState<string | null>(null)
 
   const [isPending, startTransition] = useTransition()
 
-  // Load/sync folders from localStorage + derive from set subjects
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     const savedFolders: string[] = saved ? JSON.parse(saved) : DEFAULT_FOLDERS
@@ -76,13 +76,11 @@ export function DashboardClient({ sets, dueCount }: Props) {
   function handleRename(oldName: string) {
     const next = renameValue.trim()
     if (!next || next === oldName || folders.includes(next)) { setRenamingFolder(null); return }
-    // Optimistic local update
     persistFolders(folders.map((f) => (f === oldName ? next : f)))
     if (activeFolder === oldName) setActiveFolder(next)
     setRenamingFolder(null)
-    // Sync to DB
     startTransition(async () => {
-      try { await renameFolderAction(oldName, next) } catch { /* optimistic update already applied */ }
+      try { await renameFolderAction(oldName, next) } catch { /* optimistic */ }
     })
   }
 
@@ -91,7 +89,7 @@ export function DashboardClient({ sets, dueCount }: Props) {
     if (activeFolder === name) setActiveFolder(null)
     setDeletingFolder(null)
     startTransition(async () => {
-      try { await deleteFolderAndSetsAction(name) } catch { /* optimistic update already applied */ }
+      try { await deleteFolderAndSetsAction(name) } catch { /* optimistic */ }
     })
   }
 
@@ -100,11 +98,10 @@ export function DashboardClient({ sets, dueCount }: Props) {
     if (activeFolder === name) setActiveFolder(null)
     setDeletingFolder(null)
     startTransition(async () => {
-      try { await ungroupFolderAction(name) } catch { /* optimistic update already applied */ }
+      try { await ungroupFolderAction(name) } catch { /* optimistic */ }
     })
   }
 
-  // Sets in a folder = sets whose subject matches the folder name (case-insensitive)
   const setsInFolder = useMemo(() => {
     if (!activeFolder) return []
     return sets.filter((s) => s.subject?.toLowerCase() === activeFolder.toLowerCase())
@@ -118,89 +115,101 @@ export function DashboardClient({ sets, dueCount }: Props) {
     return map
   }, [sets, folders])
 
-  // ── Folder drill-in view ──────────────────────────────────────────────────
-  if (activeFolder) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <button
-            onClick={() => setActiveFolder(null)}
-            className="flex items-center gap-2 text-sm rounded-lg border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] px-3 py-1.5 transition-colors active:scale-95"
-          >
-            ← All Folders
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{getFolderIcon(activeFolder)}</span>
-            <h1 className="text-xl font-bold">{activeFolder}</h1>
-            <span className="text-sm text-[var(--muted)]">· {setsInFolder.length} {setsInFolder.length === 1 ? 'set' : 'sets'}</span>
-          </div>
+  // ── Folder drill-in view ───────────────────────────────────────────────────
+  const folderContent = activeFolder ? (
+    <div className="flex-1 px-6 py-8">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <button
+          onClick={() => setActiveFolder(null)}
+          className="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          All Subjects
+        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{getFolderIcon(activeFolder)}</span>
+          <h1 className="text-xl font-bold">{activeFolder}</h1>
+          <span className="text-sm text-[var(--muted)]">· {setsInFolder.length} {setsInFolder.length === 1 ? 'set' : 'sets'}</span>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] transition-colors"
+        >
+          + New Set
+        </button>
+      </div>
+
+      {setsInFolder.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[var(--card-border)] py-20 text-center">
+          <p className="text-4xl">{getFolderIcon(activeFolder)}</p>
+          <p className="text-[var(--muted)]">No sets in {activeFolder} yet.</p>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors active:scale-95"
+            className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-hover)]"
           >
-            <span className="text-base leading-none">+</span> New Set
+            Create first set
           </button>
         </div>
-
-        {setsInFolder.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[var(--card-border)] py-20 text-center">
-            <p className="text-4xl">{getFolderIcon(activeFolder)}</p>
-            <p className="text-[var(--muted)]">No sets in {activeFolder} yet.</p>
-            <button
-              onClick={() => setShowModal(true)}
-              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
-            >
-              Create first set
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {setsInFolder.map((set) => (
-              <StudySetCard key={set.id} set={set} />
-            ))}
-          </div>
-        )}
-
-        {showModal && (
-          <CreateSetModal
-            defaultSubject={activeFolder}
-            onClose={() => setShowModal(false)}
-          />
-        )}
-      </div>
-    )
-  }
-
-  // ── Folder grid view ─────────────────────────────────────────────────────
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* Stats */}
-      <div className="mb-8 flex flex-wrap gap-4">
-        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 min-w-32">
-          <p className="text-xs text-[var(--muted)] mb-1">Study Sets</p>
-          <p className="text-3xl font-bold">{sets.length}</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {setsInFolder.map((set) => (
+            <StudySetCard key={set.id} set={set} />
+          ))}
         </div>
-        <div className={`rounded-xl border px-5 py-4 min-w-32 ${dueCount > 0 ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--card-border)] bg-[var(--card)]'}`}>
-          <p className="text-xs text-[var(--muted)] mb-1">Due Today</p>
-          <p className={`text-3xl font-bold ${dueCount > 0 ? 'text-[var(--accent)]' : ''}`}>{dueCount}</p>
-        </div>
-        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 min-w-32">
-          <p className="text-xs text-[var(--muted)] mb-1">Subjects</p>
-          <p className="text-3xl font-bold">{folders.length}</p>
-        </div>
-        {isPending && (
-          <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 min-w-32 flex items-center gap-2">
-            <span className="text-xs text-[var(--muted)]">Saving…</span>
-          </div>
-        )}
-      </div>
+      )}
 
+      {showModal && (
+        <CreateSetModal defaultSubject={activeFolder} onClose={() => setShowModal(false)} />
+      )}
+    </div>
+  ) : null
+
+  // ── Home view ──────────────────────────────────────────────────────────────
+  const homeContent = !activeFolder ? (
+    <div className="flex-1 px-6 py-8 max-w-5xl">
+      {/* Due-card banner */}
+      {dueCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex items-center justify-between rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-5 py-4"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🔥</span>
+            <div>
+              <p className="font-bold text-sm text-[var(--foreground)]">
+                {dueCount} {dueCount === 1 ? 'card' : 'cards'} due for review today
+              </p>
+              <p className="text-xs text-[var(--muted)]">Keep your streak going!</p>
+            </div>
+          </div>
+          <Link
+            href="/"
+            className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] transition-colors shrink-0"
+          >
+            Resume Review →
+          </Link>
+        </motion.div>
+      )}
+
+      {/* Header row */}
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Your Subjects</h2>
+        <div>
+          <h2 className="text-xl font-bold">Your Library</h2>
+          <p className="text-xs text-[var(--muted)] mt-0.5">{sets.length} sets · {folders.length} subjects</p>
+        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] transition-colors"
+        >
+          + New Set
+        </button>
       </div>
 
       {/* Folder grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <AnimatePresence>
           {folders.map((folder) => (
             <motion.div
@@ -223,31 +232,21 @@ export function DashboardClient({ sets, dueCount }: Props) {
                     placeholder="Folder name"
                   />
                   <div className="flex gap-2">
-                    <button onClick={() => handleRename(folder)} className="flex-1 rounded-lg bg-[var(--accent)] py-1.5 text-xs font-medium text-white">Save</button>
-                    <button onClick={() => setRenamingFolder(null)} className="flex-1 rounded-lg border border-[var(--card-border)] py-1.5 text-xs font-medium text-[var(--muted)]">Cancel</button>
+                    <button onClick={() => handleRename(folder)} className="flex-1 rounded-full bg-[var(--accent)] py-1.5 text-xs font-semibold text-white">Save</button>
+                    <button onClick={() => setRenamingFolder(null)} className="flex-1 rounded-full border border-[var(--card-border)] py-1.5 text-xs font-medium text-[var(--muted)]">Cancel</button>
                   </div>
                 </div>
               ) : deletingFolder === folder ? (
-                /* Two-option delete confirmation */
                 <div className="rounded-2xl border-2 border-red-500/40 bg-red-500/5 p-5 flex flex-col gap-3">
                   <p className="text-sm font-semibold">Delete &ldquo;{folder}&rdquo;?</p>
                   <p className="text-xs text-[var(--muted)]">Choose what happens to the sets inside:</p>
-                  <button
-                    onClick={() => handleDeleteSets(folder)}
-                    className="w-full rounded-lg bg-red-500 py-2 text-xs font-medium text-white hover:bg-red-600 transition-colors"
-                  >
+                  <button onClick={() => handleDeleteSets(folder)} className="w-full rounded-full bg-red-500 py-2 text-xs font-semibold text-white hover:bg-red-600 transition-colors">
                     Delete All Sets Inside
                   </button>
-                  <button
-                    onClick={() => handleUngroup(folder)}
-                    className="w-full rounded-lg border border-[var(--card-border)] py-2 text-xs font-medium text-[var(--muted)] hover:border-[var(--foreground)] hover:text-[var(--foreground)] transition-colors"
-                  >
+                  <button onClick={() => handleUngroup(folder)} className="w-full rounded-full border border-[var(--card-border)] py-2 text-xs font-medium text-[var(--muted)] hover:border-[var(--foreground)] hover:text-[var(--foreground)] transition-colors">
                     Ungroup (Keep Sets)
                   </button>
-                  <button
-                    onClick={() => setDeletingFolder(null)}
-                    className="w-full text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-                  >
+                  <button onClick={() => setDeletingFolder(null)} className="w-full text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
                     Cancel
                   </button>
                 </div>
@@ -315,10 +314,10 @@ export function DashboardClient({ sets, dueCount }: Props) {
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
             />
             <div className="flex gap-2">
-              <button onClick={handleAddFolder} className="flex-1 rounded-lg bg-[var(--accent)] py-2 text-sm font-medium text-white active:scale-95 transition-transform">
+              <button onClick={handleAddFolder} className="flex-1 rounded-full bg-[var(--accent)] py-2 text-sm font-semibold text-white active:scale-95 transition-transform">
                 Create
               </button>
-              <button onClick={() => { setAddingFolder(false); setNewFolderName('') }} className="flex-1 rounded-lg border border-[var(--card-border)] py-2 text-sm font-medium text-[var(--muted)] active:scale-95 transition-transform">
+              <button onClick={() => { setAddingFolder(false); setNewFolderName('') }} className="flex-1 rounded-full border border-[var(--card-border)] py-2 text-sm font-medium text-[var(--muted)] active:scale-95 transition-transform">
                 Cancel
               </button>
             </div>
@@ -338,6 +337,19 @@ export function DashboardClient({ sets, dueCount }: Props) {
       </div>
 
       {showModal && <CreateSetModal onClose={() => setShowModal(false)} />}
+    </div>
+  ) : null
+
+  return (
+    <div className="flex min-h-[calc(100vh-56px)]">
+      <DashboardSidebar
+        folders={folders}
+        folderSetCounts={folderSetCounts}
+        activeFolder={activeFolder}
+        onSelectFolder={setActiveFolder}
+        onAddFolder={() => setAddingFolder(true)}
+      />
+      {activeFolder ? folderContent : homeContent}
     </div>
   )
 }

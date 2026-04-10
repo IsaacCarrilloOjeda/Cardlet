@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smart Stack",
-  description: "AI-powered flashcard study platform",
+  title: "Cardlet",
+  description: "Study smarter with AI-powered flashcards",
 };
 
 export default function RootLayout({

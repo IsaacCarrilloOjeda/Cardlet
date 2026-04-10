@@ -33,7 +33,7 @@ export function AdminLoginClient() {
         <div className="mb-8 text-center">
           <p className="text-3xl mb-2">🔐</p>
           <h1 className="text-2xl font-bold">Admin Access</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">Smart Stack control panel</p>
+          <p className="text-sm text-[var(--muted)] mt-1">Cardlet control panel</p>
         </div>
 
         <form

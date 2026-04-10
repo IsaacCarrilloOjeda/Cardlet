@@ -53,7 +53,7 @@ export function CreateSetModal({ onClose, defaultSubject }: Props) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          className="relative w-full max-w-md rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-2xl"
+          className="relative w-full max-w-md rounded-2xl border border-[var(--card-border)] bg-[var(--surface)] p-6 shadow-2xl"
         >
           <h2 className="mb-5 text-xl font-bold">Create Study Set</h2>
 
