@@ -15,6 +15,7 @@ interface Props {
   cards: CardWithProgress[]
   setId: string
   setTitle: string
+  backHref?: string
 }
 
 interface SessionStats {
@@ -34,7 +35,8 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a
 }
 
-export function StudySessionClient({ cards, setId, setTitle }: Props) {
+export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) {
+  const back = backHref ?? `/sets/${setId}`
   const [deck, setDeck] = useState(cards)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
@@ -156,7 +158,7 @@ export function StudySessionClient({ cards, setId, setTitle }: Props) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <p className="text-[var(--muted)]">No cards in this set yet.</p>
-        <Link href={`/sets/${setId}`} className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white">
+        <Link href={back} className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white">
           Add Cards
         </Link>
       </div>
@@ -167,7 +169,7 @@ export function StudySessionClient({ cards, setId, setTitle }: Props) {
     <div className="mx-auto max-w-2xl px-4 py-8">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
-        <Link href={`/sets/${setId}`} className="text-sm rounded-lg border border-[var(--muted)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--foreground)] px-3 py-1.5 transition-colors inline-flex items-center gap-1">
+        <Link href={back} className="text-sm rounded-lg border border-[var(--muted)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--foreground)] px-3 py-1.5 transition-colors inline-flex items-center gap-1">
           ← {setTitle}
         </Link>
         <button
@@ -189,6 +191,7 @@ export function StudySessionClient({ cards, setId, setTitle }: Props) {
           stats={stats}
           total={deck.length}
           onStudyAgain={handleStudyAgain}
+          backHref={backHref}
         />
       ) : (
         <div className="flex flex-col gap-6">

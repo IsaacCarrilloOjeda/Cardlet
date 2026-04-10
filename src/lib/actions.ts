@@ -11,15 +11,16 @@ import {
   createCard,
   updateCard,
   deleteCard,
+  bulkInsertCards,
   upsertCardProgress,
   upsertProfile,
+  bumpStreak,
   copySetToUser,
   renameFolderInDB,
   deleteSetsInFolder,
   ungroupSetsInFolder,
   submitFeedback,
   updateFeedbackStatus,
-  getAllStudyMaterials,
   createStudyMaterial,
   deleteStudyMaterial,
   getStudyMaterialById,
@@ -113,9 +114,7 @@ export async function bulkInsertCardsAction(
   cards: { front: string; back: string; difficulty: number }[]
 ): Promise<void> {
   await getAuthUser()
-  for (const card of cards) {
-    await createCard({ set_id: setId, ...card, image_url: null })
-  }
+  await bulkInsertCards(setId, cards)
   revalidatePath(`/sets/${setId}`)
 }
 
@@ -152,7 +151,16 @@ export async function updateCardProgressAction(
     repetitions: result.repetitions,
     next_review_at: result.next_review_at.toISOString(),
   })
+
+  // Bump streak — same-day calls are no-ops in the RPC, so this is cheap.
+  bumpStreak(user.id).catch((err) => console.error('bumpStreak failed:', err))
   // No revalidation — called fire-and-forget during study session
+}
+
+export async function bumpStreakAction(): Promise<{ streak: number }> {
+  const user = await getAuthUser()
+  const streak = await bumpStreak(user.id)
+  return { streak }
 }
 
 // ─── Profile ──────────────────────────────────────────────────────────────────
@@ -177,6 +185,9 @@ export async function saveQuizResultAction(correct: number, total: number): Prom
     attempts_delta: total,
   })
   if (error) console.error('saveQuizResult failed:', error)
+
+  // Bump streak — quizzes count as study activity for the day.
+  bumpStreak(user.id).catch((err) => console.error('bumpStreak failed:', err))
 }
 
 // ─── Explore ──────────────────────────────────────────────────────────────────

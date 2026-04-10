@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { updateStudySetAction } from '@/lib/actions'
 import { CardList } from './CardList'
 import { AIGenerateModal } from './AIGenerateModal'
+import { CSVImportModal } from './CSVImportModal'
 import { SubjectInput } from '@/components/ui/SubjectInput'
 import type { Card, StudySet } from '@/types'
 
@@ -18,6 +19,7 @@ export function SetDetailClient({ set, cards }: Props) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [showAIModal, setShowAIModal] = useState(false)
+  const [showCSVModal, setShowCSVModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isPublic, setIsPublic] = useState(set.is_public)
   const formRef = useRef<HTMLFormElement>(null)
@@ -119,6 +121,12 @@ export function SetDetailClient({ set, cards }: Props) {
               >
                 ✨ Generate with AI
               </button>
+              <button
+                onClick={() => setShowCSVModal(true)}
+                className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+              >
+                📋 Import CSV
+              </button>
             </div>
           </>
         )}
@@ -129,6 +137,10 @@ export function SetDetailClient({ set, cards }: Props) {
 
       {showAIModal && (
         <AIGenerateModal setId={set.id} onClose={() => setShowAIModal(false)} />
+      )}
+
+      {showCSVModal && (
+        <CSVImportModal setId={set.id} onClose={() => setShowCSVModal(false)} />
       )}
     </div>
   )

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { AdminStats, Card, CardWithProgress, Feedback, FeedbackStatus, Profile, StudyMaterial, StudySet, UserCardProgress } from '@/types'
+import type { AdminStats, Card, CardWithProgress, DailyChallengeCard, Feedback, FeedbackStatus, Profile, StudyMaterial, StudySet, UserCardProgress } from '@/types'
 
 // ─── Study Sets ───────────────────────────────────────────────────────────────
 
@@ -89,6 +89,18 @@ export async function createCard(
   const { data: row, error } = await supabase.from('cards').insert(data).select().single()
   if (error) throw error
   return row as Card
+}
+
+export async function bulkInsertCards(
+  setId: string,
+  cards: Array<{ front: string; back: string; difficulty: number; image_url?: string | null }>
+): Promise<void> {
+  if (cards.length === 0) return
+  const supabase = await createClient()
+  const rows = cards.map((c) => ({ ...c, set_id: setId, image_url: c.image_url ?? null }))
+  // RLS on `cards` checks set ownership via subquery, so this is safe.
+  const { error } = await supabase.from('cards').insert(rows)
+  if (error) throw error
 }
 
 export async function updateCard(
@@ -202,6 +214,72 @@ export async function upsertProfile(data: Partial<Profile> & { id: string }): Pr
   if (error) throw error
 }
 
+// Atomic streak bump via SECURITY DEFINER RPC. Returns the new streak value.
+export async function bumpStreak(userId: string): Promise<number> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('bump_streak', { uid: userId })
+  if (error) throw error
+  return (data as number | null) ?? 0
+}
+
+// Cheap count — used to badge the dashboard "Review Mistakes" button.
+export async function getMistakeCardCount(userId: string): Promise<number> {
+  const supabase = await createClient()
+  const { count, error } = await supabase
+    .from('user_card_progress')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .lt('ease_factor', 2.2)
+  if (error) return 0
+  return count ?? 0
+}
+
+// Cards the user has struggled with — for the Mistake Deck route.
+export async function getMistakeCards(userId: string): Promise<CardWithProgress[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_mistake_cards', { uid: userId, lim: 30 })
+  if (error) throw error
+  type Row = {
+    id: string
+    set_id: string
+    front: string
+    back: string
+    image_url: string | null
+    difficulty: number
+    created_at: string
+    ease_factor: number
+    interval_days: number
+    repetitions: number
+    next_review_at: string | null
+  }
+  return (data as Row[] ?? []).map((r) => ({
+    id: r.id,
+    set_id: r.set_id,
+    front: r.front,
+    back: r.back,
+    image_url: r.image_url,
+    difficulty: r.difficulty,
+    created_at: r.created_at,
+    progress: {
+      user_id: userId,
+      card_id: r.id,
+      ease_factor: r.ease_factor,
+      interval: r.interval_days,
+      repetitions: r.repetitions,
+      next_review_at: r.next_review_at,
+    },
+  })) as CardWithProgress[]
+}
+
+// Deterministic daily card — same for every user per UTC date.
+export async function getDailyChallengeCard(): Promise<DailyChallengeCard | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('get_daily_challenge_card')
+  if (error) return null
+  const rows = data as DailyChallengeCard[] | null
+  return rows && rows.length > 0 ? rows[0] : null
+}
+
 // ─── Explore ──────────────────────────────────────────────────────────────────
 
 export async function searchPublicSets(query: string): Promise<StudySet[]> {
@@ -249,7 +327,7 @@ export async function renameFolderInDB(userId: string, oldSubject: string, newSu
     .from('study_sets')
     .update({ subject: newSubject })
     .eq('user_id', userId)
-    .ilike('subject', oldSubject)
+    .eq('subject', oldSubject)
   if (error) throw error
 }
 
@@ -259,7 +337,7 @@ export async function deleteSetsInFolder(userId: string, subject: string): Promi
     .from('study_sets')
     .delete()
     .eq('user_id', userId)
-    .ilike('subject', subject)
+    .eq('subject', subject)
   if (error) throw error
 }
 
@@ -269,7 +347,7 @@ export async function ungroupSetsInFolder(userId: string, subject: string): Prom
     .from('study_sets')
     .update({ subject: null })
     .eq('user_id', userId)
-    .ilike('subject', subject)
+    .eq('subject', subject)
   if (error) throw error
 }
 
@@ -327,22 +405,24 @@ export async function getAdminStats(): Promise<AdminStats> {
   }
 }
 
-export async function getAllProfiles(): Promise<Profile[]> {
+export async function getAllProfiles(limit = 50, offset = 0): Promise<Profile[]> {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('profiles')
     .select('*')
     .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return (data ?? []) as Profile[]
 }
 
-export async function getAllStudySetsAdmin(): Promise<StudySet[]> {
+export async function getAllStudySetsAdmin(limit = 50, offset = 0): Promise<StudySet[]> {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('study_sets')
     .select('*, cards(count)')
     .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return (data ?? []).map((row) => ({
     ...row,
@@ -351,12 +431,13 @@ export async function getAllStudySetsAdmin(): Promise<StudySet[]> {
   })) as StudySet[]
 }
 
-export async function getAllFeedback(): Promise<Feedback[]> {
+export async function getAllFeedback(limit = 50, offset = 0): Promise<Feedback[]> {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('feedback')
     .select('*')
     .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
   if (error) throw error
   return (data ?? []) as Feedback[]
 }
@@ -446,13 +527,6 @@ export interface LeaderboardEntry {
   quiz_correct: number
   quiz_attempts: number
   score: number
-}
-
-export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
-  const admin = createAdminClient()
-  const { data, error } = await admin.rpc('get_leaderboard', { lim: limit })
-  if (error) throw error
-  return (data ?? []) as LeaderboardEntry[]
 }
 
 export async function getLeaderboardV2(

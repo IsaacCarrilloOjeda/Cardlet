@@ -8,17 +8,15 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch profile + stats in parallel
+  // Fetch profile + stats truly in parallel. Card count uses an inner join
+  // through study_sets so it doesn't depend on a prior set-id lookup.
   const [profile, setsResult, cardsResult] = await Promise.all([
     getProfile(user.id),
     supabase.from('study_sets').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase
       .from('cards')
-      .select('id', { count: 'exact', head: true })
-      .in(
-        'set_id',
-        (await supabase.from('study_sets').select('id').eq('user_id', user.id)).data?.map((s) => s.id) ?? []
-      ),
+      .select('id, study_sets!inner(user_id)', { count: 'exact', head: true })
+      .eq('study_sets.user_id', user.id),
   ])
 
   const stats = {

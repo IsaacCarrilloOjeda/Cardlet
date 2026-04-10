@@ -53,6 +53,7 @@ export function AITutorChat({ cardFront, cardBack, wrongAnswer, onClose }: Props
     setIsLoading(true)
     setStreaming('')
 
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
     try {
       const res = await fetch('/api/ai/tutor', {
         method: 'POST',
@@ -68,7 +69,7 @@ export function AITutorChat({ cardFront, cardBack, wrongAnswer, onClose }: Props
 
       if (!res.ok || !res.body) throw new Error('Failed')
 
-      const reader = res.body.getReader()
+      reader = res.body.getReader()
       const decoder = new TextDecoder()
       let accumulated = ''
 
@@ -95,6 +96,10 @@ export function AITutorChat({ cardFront, cardBack, wrongAnswer, onClose }: Props
       setHistory((prev) => [...prev, { role: 'assistant', content: accumulated }])
       setStreaming('')
     } catch {
+      // Release the reader lock so the stream can be GC'd even on failure.
+      if (reader) {
+        try { await reader.cancel() } catch { /* ignore */ }
+      }
       setHistory((prev) => [...prev, { role: 'assistant', content: 'Sorry, I had trouble responding. Please try again.' }])
     } finally {
       setIsLoading(false)

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import type { LeaderboardEntry } from '@/lib/db'
 
@@ -31,8 +32,14 @@ function AvatarCircle({ entry, size = 8 }: { entry: LeaderboardEntry; size?: num
   if (!entry.is_private && entry.avatar_url) {
     return (
       <div className={cls}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={entry.avatar_url} alt="" className="w-full h-full object-cover" />
+        <Image
+          src={entry.avatar_url}
+          alt=""
+          width={64}
+          height={64}
+          className="w-full h-full object-cover"
+          unoptimized
+        />
       </div>
     )
   }

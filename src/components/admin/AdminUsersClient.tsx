@@ -1,6 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
+import Image from 'next/image'
 import { adminSetUserRoleAction } from '@/lib/actions'
 import type { Profile } from '@/types'
 
@@ -41,8 +42,14 @@ export function AdminUsersClient({ profiles }: Props) {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
                     {profile.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={profile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                      <Image
+                        src={profile.avatar_url}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="w-7 h-7 rounded-full object-cover"
+                        unoptimized
+                      />
                     ) : (
                       <div className="w-7 h-7 rounded-full bg-[var(--accent)]/20 flex items-center justify-center text-xs font-bold text-[var(--accent)]">
                         {(profile.username ?? '?')[0]?.toUpperCase()}

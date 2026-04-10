@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { updateProfileAction } from '@/lib/actions'
 import { useTheme, ACCENT_COLORS, type AccentKey } from '@/components/layout/ThemeProvider'
@@ -92,8 +93,14 @@ export function ProfileClient({ profile, stats, email }: Props) {
             onClick={() => fileInputRef.current?.click()}
           >
             {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <Image
+                src={avatarUrl}
+                alt="Avatar"
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+                unoptimized
+              />
             ) : (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[var(--muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

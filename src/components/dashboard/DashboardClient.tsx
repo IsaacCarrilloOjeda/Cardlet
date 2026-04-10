@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { StudySetCard } from './StudySetCard'
 import { CreateSetModal } from './CreateSetModal'
 import { DashboardSidebar } from './DashboardSidebar'
-import type { StudySet } from '@/types'
+import { DailyChallengeCard } from './DailyChallengeCard'
+import type { StudySet, DailyChallengeCard as DailyCard } from '@/types'
 import {
   renameFolderAction,
   deleteFolderAndSetsAction,
@@ -16,6 +17,9 @@ import {
 interface Props {
   sets: StudySet[]
   dueCount: number
+  streak?: number
+  mistakeCount?: number
+  dailyCard?: DailyCard | null
 }
 
 const STORAGE_KEY = 'ss_folders'
@@ -40,7 +44,7 @@ function getFolderIcon(name: string) {
   return '📁'
 }
 
-export function DashboardClient({ sets, dueCount }: Props) {
+export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, dailyCard = null }: Props) {
   const [folders, setFolders] = useState<string[]>(DEFAULT_FOLDERS)
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -169,6 +173,41 @@ export function DashboardClient({ sets, dueCount }: Props) {
   // ── Home view ──────────────────────────────────────────────────────────────
   const homeContent = !activeFolder ? (
     <div className="flex-1 px-6 py-8 max-w-5xl">
+      {/* Top stat row: streak + mistake deck */}
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 flex items-center gap-3">
+          <span className="text-2xl">🔥</span>
+          <div>
+            <p className="text-xl font-bold leading-tight">{streak}</p>
+            <p className="text-[11px] text-[var(--muted)]">day {streak === 1 ? 'streak' : 'streak'}</p>
+          </div>
+        </div>
+        {mistakeCount > 0 ? (
+          <Link
+            href="/study/mistakes"
+            className="rounded-2xl border border-red-500/30 bg-red-500/5 px-5 py-4 flex items-center gap-3 hover:border-red-500/50 transition-colors group"
+          >
+            <span className="text-2xl">🎯</span>
+            <div className="flex-1">
+              <p className="text-sm font-bold leading-tight">Review Mistakes</p>
+              <p className="text-[11px] text-[var(--muted)]">{mistakeCount} {mistakeCount === 1 ? 'card needs' : 'cards need'} another look</p>
+            </div>
+            <span className="text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">→</span>
+          </Link>
+        ) : (
+          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 flex items-center gap-3">
+            <span className="text-2xl">✨</span>
+            <div>
+              <p className="text-sm font-bold leading-tight">No mistakes</p>
+              <p className="text-[11px] text-[var(--muted)]">You&apos;re crushing every card</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Daily Challenge */}
+      {dailyCard && <DailyChallengeCard card={dailyCard} />}
+
       {/* Due-card banner */}
       {dueCount > 0 && (
         <motion.div

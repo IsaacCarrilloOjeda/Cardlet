@@ -109,6 +109,28 @@ export function QuizMultipleChoice({ card, allCards, onResult, onSkip, onExplain
     // else: wait for click (handled by useEffect above)
   }
 
+  // Keyboard shortcuts: 1-4 to pick an option, S to skip
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (selected || isLoading || options.length === 0) return
+      const n = parseInt(e.key, 10)
+      if (n >= 1 && n <= options.length) {
+        e.preventDefault()
+        handleSelect(options[n - 1])
+        return
+      }
+      if ((e.key === 's' || e.key === 'S') && onSkip) {
+        e.preventDefault()
+        onSkip()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, isLoading, options])
+
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-8 text-center min-h-32 flex items-center justify-center">
@@ -140,10 +162,10 @@ export function QuizMultipleChoice({ card, allCards, onResult, onSkip, onExplain
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {options.map((option) => {
+          {options.map((option, i) => {
             const isCorrect = option === card.back
             const isSelected = selected === option
-            let cls = 'rounded-xl border-2 p-4 text-sm text-left transition-all'
+            let cls = 'rounded-xl border-2 p-4 text-sm text-left transition-all flex items-start gap-2'
             if (!selected) {
               cls += ' border-[var(--card-border)] bg-[var(--card)] hover:border-[var(--accent)] cursor-pointer'
             } else if (isCorrect) {
@@ -155,7 +177,10 @@ export function QuizMultipleChoice({ card, allCards, onResult, onSkip, onExplain
             }
             return (
               <button key={option} className={cls} onClick={() => handleSelect(option)}>
-                {option}
+                <kbd className="hidden sm:inline-flex shrink-0 items-center justify-center w-5 h-5 rounded text-[10px] font-mono bg-[var(--background)] border border-[var(--card-border)] text-[var(--muted)]">
+                  {i + 1}
+                </kbd>
+                <span className="flex-1">{option}</span>
               </button>
             )
           })}

@@ -16,9 +16,11 @@ interface Props {
   stats: Stats
   total: number
   onStudyAgain: () => void
+  backHref?: string
 }
 
-export function CompletionScreen({ setId, stats, total, onStudyAgain }: Props) {
+export function CompletionScreen({ setId, stats, total, onStudyAgain, backHref }: Props) {
+  const back = backHref ?? `/sets/${setId}`
   const pct = total === 0 ? 0 : Math.round(((stats.good + stats.easy + stats.perfect) / total) * 100)
 
   return (
@@ -81,10 +83,10 @@ export function CompletionScreen({ setId, stats, total, onStudyAgain }: Props) {
           Study Again
         </button>
         <Link
-          href={`/sets/${setId}`}
+          href={back}
           className="flex-1 rounded-xl bg-[var(--accent)] py-3 text-center text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
         >
-          Back to Set
+          {backHref ? 'Done' : 'Back to Set'}
         </Link>
       </div>
     </motion.div>

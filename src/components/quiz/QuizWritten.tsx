@@ -24,6 +24,7 @@ export function QuizWritten({ card, onResult, onSkip, onExplain, clickToContinue
     setNoCredits(false)
     if (inputRef.current) {
       inputRef.current.value = ''
+      inputRef.current.focus()
     }
   }, [card.id])
 

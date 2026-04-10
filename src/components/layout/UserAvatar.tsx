@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
 interface Profile {
@@ -57,11 +58,13 @@ export function UserAvatar() {
       aria-label="Profile"
     >
       {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={avatarUrl}
           alt="Profile"
+          width={24}
+          height={24}
           className="h-6 w-6 rounded-full object-cover"
+          unoptimized
           onError={(e) => {
             // If image fails to load, fall back to default icon
             const target = e.target as HTMLImageElement

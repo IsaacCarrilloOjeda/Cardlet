@@ -8,6 +8,15 @@ export interface Profile {
   role: 'student' | 'teacher' | 'admin'
   quiz_correct: number
   quiz_attempts: number
+  last_study_date?: string | null
+}
+
+export interface DailyChallengeCard {
+  id: string
+  set_id: string
+  front: string
+  back: string
+  set_title: string
 }
 
 export interface StudySet {

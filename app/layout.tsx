@@ -6,6 +6,7 @@ import { CreditsProvider } from "@/components/layout/CreditsContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CircleProgress } from "@/components/layout/CircleProgress";
+import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +21,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Cardlet",
   description: "Study smarter with AI-powered flashcards",
+  appleWebApp: {
+    capable: true,
+    title: "Cardlet",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({
@@ -40,6 +50,7 @@ export default function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
             <CircleProgress />
+            <ServiceWorkerRegister />
           </CreditsProvider>
         </ThemeProvider>
       </body>

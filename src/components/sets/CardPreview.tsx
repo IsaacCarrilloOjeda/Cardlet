@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { deleteCardAction } from '@/lib/actions'
 import { CardForm } from './CardForm'
+import { SpeakButton } from '@/components/study/SpeakButton'
 import type { Card } from '@/types'
 
 const DIFFICULTY_LABELS: Record<number, { label: string; color: string }> = {
@@ -81,17 +82,18 @@ export function CardPreview({ card, setId, index }: Props) {
       </button>
 
       {/* Actions */}
-      <div className="flex justify-end gap-2 border-t border-[var(--card-border)] px-4 py-2 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="flex justify-end items-center gap-2 border-t border-[var(--card-border)] px-2 py-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <SpeakButton text={isFlipped ? card.back : card.front} size={14} />
         <button
           onClick={() => setIsEditing(true)}
-          className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2"
         >
           Edit
         </button>
         <button
           onClick={handleDelete}
           disabled={isPending}
-          className="text-xs text-red-500 hover:text-red-400 transition-colors"
+          className="text-xs text-red-500 hover:text-red-400 transition-colors px-2"
         >
           Delete
         </button>
