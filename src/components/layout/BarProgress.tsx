@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCredits, TUTOR_FULL_COST, TUTOR_HALF_COST, WRITTEN_GRADING_COST, CARD_GEN_COST } from './CreditsContext'
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
 }
 
 export function BarProgress({ compact }: Props) {
-  const { credits, totalCredits, addCredits } = useCredits()
+  const { credits, totalCredits } = useCredits()
 
   const used = totalCredits - credits
   const fraction = totalCredits > 0 ? used / totalCredits : 0
@@ -35,13 +36,13 @@ export function BarProgress({ compact }: Props) {
           </div>
         </div>
 
-        <button
-          onClick={addCredits}
-          title="Add 100 credits"
+        <Link
+          href="/credits"
+          title="Get more credits"
           className="flex-shrink-0 w-6 h-6 rounded-full border border-[var(--accent)] text-[var(--accent)] flex items-center justify-center text-sm font-bold hover:bg-[var(--accent)] hover:text-white transition-colors"
         >
           +
-        </button>
+        </Link>
       </div>
     )
   }
@@ -50,13 +51,13 @@ export function BarProgress({ compact }: Props) {
     <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">AI Credits</p>
-        <button
-          onClick={addCredits}
-          title="Add 100 credits"
+        <Link
+          href="/credits"
+          title="Get more credits"
           className="flex items-center gap-1 rounded-full border border-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-colors"
         >
-          <span className="text-base leading-none">+</span> Add Credits
-        </button>
+          <span className="text-base leading-none">+</span> Get Credits
+        </Link>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -73,10 +74,10 @@ export function BarProgress({ compact }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-[var(--muted)]">
-        <span>✨ AI Tutor (full) — {TUTOR_FULL_COST} credits</span>
-        <span>⚡ AI Tutor (half) — {TUTOR_HALF_COST} credits</span>
-        <span>📝 Written grading — {WRITTEN_GRADING_COST} credit</span>
-        <span>🃏 Card generation — {CARD_GEN_COST} credit/card</span>
+        <span>AI Tutor (full) — {TUTOR_FULL_COST} credits</span>
+        <span>AI Tutor (half) — {TUTOR_HALF_COST} credits</span>
+        <span>Written grading — {WRITTEN_GRADING_COST} credit</span>
+        <span>Card generation — {CARD_GEN_COST} credit/card</span>
       </div>
     </div>
   )

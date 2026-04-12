@@ -25,7 +25,7 @@ export const DIFFICULTY_MULTIPLIERS: Record<GraderDifficulty, number> = {
 export const DIFFICULTY_LABELS: Record<GraderDifficulty, string> = {
   easy: '🌱 Easy',
   normal: '⚖️ Normal',
-  hard: '🔥 Hard',
+  hard: '🔥\uFE0F Hard',
   brutal: '💀 Brutal',
 }
 

@@ -72,7 +72,7 @@ export function ProfileClient({ profile, stats, email }: Props) {
       <div className="mb-4 grid grid-cols-3 gap-4">
         <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-center">
           <p className="text-3xl font-bold text-[var(--accent)]">{profile.streak}</p>
-          <p className="text-xs text-[var(--muted)] mt-1">Day Streak 🔥</p>
+          <p className="text-xs text-[var(--muted)] mt-1">Day Streak {'🔥\uFE0F'}</p>
         </div>
         <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-center">
           <p className="text-3xl font-bold">{stats.setCount}</p>

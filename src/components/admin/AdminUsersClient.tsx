@@ -75,7 +75,7 @@ export function AdminUsersClient({ profiles }: Props) {
                 </td>
                 <td className="px-4 py-3">
                   <span className={`font-semibold ${profile.streak > 0 ? 'text-orange-400' : 'text-[var(--muted)]'}`}>
-                    {profile.streak > 0 ? `🔥 ${profile.streak}` : '—'}
+                    {profile.streak > 0 ? `🔥\uFE0F ${profile.streak}` : '—'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-[var(--muted)] text-xs">

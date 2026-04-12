@@ -25,12 +25,14 @@ interface Credits {
 }
 
 interface CreditsContextValue extends Credits {
-  addCredits: () => void
+  addCredits: (amount?: number) => void
   consumeCredits: (amount: number) => boolean
 }
 
 const BUNDLE = 100
 const DEFAULT: Credits = { credits: 100, totalCredits: 100 }
+
+const RESET_KEY = 'ss_credits_reset'
 
 const CreditsContext = createContext<CreditsContextValue>({
   ...DEFAULT,
@@ -67,6 +69,21 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       }
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) setCredits(JSON.parse(stored))
+
+      // Monthly reset: free users get 100 credits on the 1st of each month
+      const now = new Date()
+      const resetRaw = localStorage.getItem(RESET_KEY)
+      const lastReset = resetRaw ? JSON.parse(resetRaw) : null
+      const isNewMonth =
+        !lastReset ||
+        lastReset.year < now.getFullYear() ||
+        (lastReset.year === now.getFullYear() && lastReset.month < now.getMonth())
+      if (isNewMonth) {
+        const fresh: Credits = { credits: 100, totalCredits: 100 }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh))
+        localStorage.setItem(RESET_KEY, JSON.stringify({ month: now.getMonth(), year: now.getFullYear() }))
+        setCredits(fresh)
+      }
     } catch {}
   }, [])
 
@@ -75,10 +92,10 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
   }
 
-  function addCredits() {
+  function addCredits(amount: number = BUNDLE) {
     save({
-      credits: credits.credits + BUNDLE,
-      totalCredits: credits.totalCredits + BUNDLE,
+      credits: credits.credits + amount,
+      totalCredits: credits.totalCredits + amount,
     })
   }
 

@@ -162,7 +162,7 @@ function LoggedOutHeader() {
   )
 }
 
-function LoggedInHeader({ avatarUrl }: { avatarUrl: string | null }) {
+function LoggedInHeader({ avatarUrl, isAdmin }: { avatarUrl: string | null; isAdmin: boolean }) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -228,18 +228,22 @@ function LoggedInHeader({ avatarUrl }: { avatarUrl: string | null }) {
               <span className="hidden sm:block">Create</span>
             </button>
 
-            <Link
-              href="/#pricing"
-              className="rounded-full px-4 py-1.5 text-sm font-bold hidden md:block hover:opacity-90 transition-opacity"
-              style={{ background: 'var(--cta)', color: 'var(--cta-text)' }}
-            >
-              Upgrade
-            </Link>
+            {!isAdmin && (
+              <Link
+                href="/plans"
+                className="rounded-full px-4 py-1.5 text-sm font-bold hidden md:block hover:opacity-90 transition-opacity"
+                style={{ background: 'var(--cta)', color: 'var(--cta-text)' }}
+              >
+                Upgrade
+              </Link>
+            )}
 
             {/* Mobile credits widget — sits to the left of Settings + Profile */}
-            <div className="lg:hidden">
-              <CircleProgress variant="header" />
-            </div>
+            {!isAdmin && (
+              <div className="lg:hidden">
+                <CircleProgress variant="header" />
+              </div>
+            )}
 
             <div className="relative" ref={settingsRef}>
               <SettingsButton onClick={() => setSettingsOpen((o) => !o)} />
@@ -281,6 +285,7 @@ function LoggedInHeader({ avatarUrl }: { avatarUrl: string | null }) {
 export function Header() {
   const [authState, setAuthState] = useState<'loading' | 'authed' | 'anon'>('loading')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     async function check() {
@@ -289,8 +294,11 @@ export function Header() {
       if (!user) { setAuthState('anon'); return }
       setAuthState('authed')
       const { data: profile } = await supabase
-        .from('profiles').select('avatar_url').eq('id', user.id).single()
-      if (profile) setAvatarUrl(profile.avatar_url)
+        .from('profiles').select('avatar_url, role').eq('id', user.id).single()
+      if (profile) {
+        setAvatarUrl(profile.avatar_url)
+        setIsAdmin(profile.role === 'admin')
+      }
     }
     check()
   }, [])
@@ -309,5 +317,5 @@ export function Header() {
   }
 
   if (authState === 'anon') return <LoggedOutHeader />
-  return <LoggedInHeader avatarUrl={avatarUrl} />
+  return <LoggedInHeader avatarUrl={avatarUrl} isAdmin={isAdmin} />
 }

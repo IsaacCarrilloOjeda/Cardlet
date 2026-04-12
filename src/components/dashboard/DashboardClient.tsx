@@ -24,7 +24,7 @@ interface Props {
 }
 
 const STORAGE_KEY = 'ss_folders'
-const DEFAULT_FOLDERS = ['New Subject']
+const DEFAULT_FOLDERS: string[] = []
 
 function getFolderStyle(): React.CSSProperties {
   return {
@@ -42,7 +42,7 @@ function getFolderIcon(_name: string) {
 }
 
 export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, dailyCard = null }: Props) {
-  const [folders, setFolders] = useState<string[]>(DEFAULT_FOLDERS)
+  const [folders, setFolders] = useState<string[]>([])
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [addingFolder, setAddingFolder] = useState(false)
@@ -55,7 +55,7 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
-    const savedFolders: string[] = saved ? JSON.parse(saved) : DEFAULT_FOLDERS
+    const savedFolders: string[] = saved ? JSON.parse(saved) : []
     const subjectFolders = Array.from(new Set(sets.map((s) => s.subject).filter(Boolean))) as string[]
     const merged = Array.from(new Set([...savedFolders, ...subjectFolders]))
     setFolders(merged)

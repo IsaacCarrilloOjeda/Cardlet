@@ -54,7 +54,7 @@ function AvatarCircle({ entry, size = 8 }: { entry: LeaderboardEntry; size?: num
 
 function formatStat(entry: LeaderboardEntry, mode: string): string {
   switch (mode) {
-    case 'streak':        return `🔥 ${entry.streak}d`
+    case 'streak':        return `🔥\uFE0F ${entry.streak}d`
     case 'cards_studied': return `${Number(entry.cards_studied).toLocaleString()} cards`
     case 'quiz_accuracy':
       return entry.quiz_attempts > 0
@@ -150,7 +150,7 @@ export function LeaderboardClient({ leaders, subjects, currentMode, currentSubje
                       <RoleBadge role={leader.role} />
                     </p>
                     <p className="text-xs text-[var(--muted)] mt-0.5">{formatStat(leader, currentMode)}</p>
-                    <p className="text-xs text-orange-400 mt-1">🔥 {leader.streak}d</p>
+                    <p className="text-xs text-orange-400 mt-1">{'🔥\uFE0F'} {leader.streak}d</p>
                   </Link>
                 )
               })}

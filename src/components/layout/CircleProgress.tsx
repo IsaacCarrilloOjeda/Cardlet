@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 import {
   useCredits,
   TUTOR_FULL_COST,
@@ -20,8 +22,10 @@ interface Props {
 }
 
 export function CircleProgress({ variant = 'floating' }: Props) {
-  const { credits, totalCredits, addCredits } = useCredits()
+  const { credits, totalCredits } = useCredits()
   const [expanded, setExpanded] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminChecked, setAdminChecked] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const used = totalCredits - credits
@@ -36,6 +40,22 @@ export function CircleProgress({ variant = 'floating' }: Props) {
     return '#ef4444'
   }
 
+  // Check admin role
+  useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { setAdminChecked(true); return }
+        const { data: profile } = await supabase
+          .from('profiles').select('role').eq('id', user.id).single()
+        if (profile?.role === 'admin') setIsAdmin(true)
+      } catch {}
+      setAdminChecked(true)
+    }
+    checkAdmin()
+  }, [])
+
   // Click-outside to close tooltip
   useEffect(() => {
     if (!expanded) return
@@ -46,8 +66,10 @@ export function CircleProgress({ variant = 'floating' }: Props) {
     return () => document.removeEventListener('mousedown', onClick)
   }, [expanded])
 
+  if (!adminChecked || isAdmin) return null
+
   if (variant === 'header') {
-    return <CompactCircle credits={credits} totalCredits={totalCredits} fraction={fraction} addCredits={addCredits} />
+    return <CompactCircle credits={credits} totalCredits={totalCredits} fraction={fraction} />
   }
 
   return (
@@ -61,18 +83,19 @@ export function CircleProgress({ variant = 'floating' }: Props) {
               <span className="font-medium">{credits}/{totalCredits}</span>
             </div>
             <div className="border-t border-[var(--card-border)] pt-2 flex flex-col gap-1 text-[10px] text-[var(--muted)]">
-              <span>✨ Tutor (full) — {TUTOR_FULL_COST} credits</span>
-              <span>⚡ Tutor (half) — {TUTOR_HALF_COST} credits</span>
-              <span>📝 Written grading — {WRITTEN_GRADING_COST} credit</span>
-              <span>🃏 Card gen — {CARD_GEN_COST} credit/card</span>
-              <span>📸 Photo OCR — {IMAGE_OCR_COST} credits</span>
+              <span>Tutor (full) — {TUTOR_FULL_COST} credits</span>
+              <span>Tutor (half) — {TUTOR_HALF_COST} credits</span>
+              <span>Written grading — {WRITTEN_GRADING_COST} credit</span>
+              <span>Card gen — {CARD_GEN_COST} credit/card</span>
+              <span>Photo OCR — {IMAGE_OCR_COST} credits</span>
             </div>
-            <button
-              onClick={() => { addCredits(); setExpanded(false) }}
-              className="mt-1 w-full rounded-lg bg-[var(--accent)] py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] transition-colors"
+            <Link
+              href="/credits"
+              onClick={() => setExpanded(false)}
+              className="mt-1 w-full rounded-lg bg-[var(--accent)] py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] transition-colors text-center"
             >
-              + Add 100 credits
-            </button>
+              Get More Credits
+            </Link>
           </div>
         )}
 
@@ -99,16 +122,14 @@ export function CircleProgress({ variant = 'floating' }: Props) {
             <span className="text-xs font-bold tabular-nums" style={{ color: snakeColor() }}>{credits}</span>
             <span className="text-[9px] text-[var(--muted)]">credits</span>
           </div>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={(e) => { e.stopPropagation(); addCredits() }}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); addCredits() } }}
-            title="Add 100 credits"
-            className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full bg-[var(--accent)] text-white text-xs font-bold flex items-center justify-center hover:scale-110 transition-transform shadow-md cursor-pointer"
+          <Link
+            href="/credits"
+            title="Get more credits"
+            onClick={(e) => e.stopPropagation()}
+            className="absolute -bottom-1.5 -right-1.5 w-5 h-5 rounded-full bg-[var(--accent)] text-white text-xs font-bold flex items-center justify-center hover:scale-110 transition-transform shadow-md"
           >
             +
-          </div>
+          </Link>
         </button>
       </div>
     </div>
@@ -120,12 +141,10 @@ function CompactCircle({
   credits,
   totalCredits,
   fraction,
-  addCredits,
 }: {
   credits: number
   totalCredits: number
   fraction: number
-  addCredits: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -189,18 +208,19 @@ function CompactCircle({
             <span className="font-medium">{credits}/{totalCredits}</span>
           </div>
           <div className="border-t border-[var(--card-border)] pt-2 flex flex-col gap-1 text-[10px] text-[var(--muted)]">
-            <span>✨ Tutor (full) — {TUTOR_FULL_COST} credits</span>
-            <span>⚡ Tutor (half) — {TUTOR_HALF_COST} credits</span>
-            <span>📝 Written grading — {WRITTEN_GRADING_COST} credit</span>
-            <span>🃏 Card gen — {CARD_GEN_COST} credit/card</span>
-            <span>📸 Photo OCR — {IMAGE_OCR_COST} credits</span>
+            <span>Tutor (full) — {TUTOR_FULL_COST} credits</span>
+            <span>Tutor (half) — {TUTOR_HALF_COST} credits</span>
+            <span>Written grading — {WRITTEN_GRADING_COST} credit</span>
+            <span>Card gen — {CARD_GEN_COST} credit/card</span>
+            <span>Photo OCR — {IMAGE_OCR_COST} credits</span>
           </div>
-          <button
-            onClick={() => { addCredits(); setExpanded(false) }}
-            className="mt-1 w-full rounded-lg bg-[var(--accent)] py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] transition-colors"
+          <Link
+            href="/credits"
+            onClick={() => setExpanded(false)}
+            className="mt-1 w-full rounded-lg bg-[var(--accent)] py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] transition-colors text-center"
           >
-            + Add 100 credits
-          </button>
+            Get More Credits
+          </Link>
         </div>
       )}
     </div>
