@@ -6,6 +6,8 @@ export const contentType = 'image/png'
 export default function Icon() {
   const cardW = 390
   const cardH = 300
+  const frontW = Math.round(cardW * 1.15) // 449
+  const frontH = Math.round(cardH * 1.15) // 345
 
   return new ImageResponse(
     (
@@ -36,12 +38,12 @@ export default function Icon() {
         <div
           style={{
             position: 'absolute',
-            width: cardW,
-            height: cardH,
+            width: frontW,
+            height: frontH,
             background: '#5b21b6',
             borderRadius: 36,
-            top: 512 - cardH,
-            left: 512 - cardW,
+            top: 512 - frontH,
+            left: 512 - frontW,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -50,7 +52,7 @@ export default function Icon() {
           <div
             style={{
               color: '#ffffff',
-              fontSize: 150,
+              fontSize: 180,
               fontWeight: 700,
               fontFamily: 'sans-serif',
             }}
