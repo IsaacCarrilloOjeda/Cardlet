@@ -46,16 +46,42 @@ export interface LanguageMeta {
   units: Unit[]
 }
 
+export interface Achievement {
+  id: string
+  name: string
+  desc: string
+  icon: 'star' | 'fire' | 'lightning' | 'trophy' | 'book' | 'crown' | 'heart' | 'globe'
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  { id: 'first_lesson',  name: 'First Step',      desc: 'Complete your first lesson',               icon: 'star'      },
+  { id: 'flawless',      name: 'Flawless',         desc: 'Finish a lesson without losing a heart',   icon: 'heart'     },
+  { id: 'xp_50',         name: 'Dedicated',        desc: 'Earn 50 XP total',                         icon: 'fire'      },
+  { id: 'xp_100',        name: 'Scholar',          desc: 'Earn 100 XP total',                        icon: 'book'      },
+  { id: 'lessons_5',     name: 'Word Collector',   desc: 'Complete 5 lessons',                       icon: 'lightning' },
+  { id: 'polyglot',      name: 'Polyglot',         desc: 'Study 2 different languages',              icon: 'globe'     },
+  { id: 'spanish_u1',    name: '¡Hola!',           desc: 'Complete all of Spanish Unit 1',           icon: 'trophy'    },
+  { id: 'french_u1',     name: 'Bonjour!',         desc: 'Complete all of French Unit 1',            icon: 'crown'     },
+]
+
+/** Distractor word pools used by the word-bank exercise mode */
+export const DISTRACTORS: Record<string, string[]> = {
+  es: ['el', 'la', 'un', 'es', 'de', 'y', 'no', 'sí', 'muy', 'bien', 'hola', 'qué', 'con'],
+  fr: ['le', 'la', 'un', 'est', 'de', 'et', 'non', 'oui', 'très', 'bien', 'avec', 'ou'],
+}
+
+export const SPEECH_LANG: Record<string, string> = {
+  es: 'es-ES', fr: 'fr-FR', de: 'de-DE', ja: 'ja-JP',
+  ko: 'ko-KR', zh: 'zh-CN', pt: 'pt-PT', it: 'it-IT',
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const mc = (
   question: string,
   options: string[],
   correctIndex: number,
 ): Extract<Exercise, { type: 'multipleChoice' }> => ({
-  type: 'multipleChoice',
-  question,
-  options,
-  correctIndex,
+  type: 'multipleChoice', question, options, correctIndex,
 })
 
 const tr = (
@@ -64,27 +90,18 @@ const tr = (
   answer: string,
   alternatives?: string[],
 ): Extract<Exercise, { type: 'translate' }> => ({
-  type: 'translate',
-  prompt,
-  promptLang,
-  answer,
-  alternatives,
+  type: 'translate', prompt, promptLang, answer, alternatives,
 })
 
 const mp = (
   pairs: [string, string][],
 ): Extract<Exercise, { type: 'matchPairs' }> => ({
-  type: 'matchPairs',
-  pairs,
+  type: 'matchPairs', pairs,
 })
 
 // ─── answer checking ──────────────────────────────────────────────────────────
 export function normalizeAnswer(s: string): string {
-  return s
-    .toLowerCase()
-    .trim()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+  return s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
 export function checkTranslateAnswer(
@@ -94,18 +111,13 @@ export function checkTranslateAnswer(
 ): boolean {
   const norm = normalizeAnswer(userAnswer)
   if (!norm) return false
-  const all = [correct, ...(alternatives ?? [])].map(normalizeAnswer)
-  return all.includes(norm)
+  return [correct, ...(alternatives ?? [])].map(normalizeAnswer).includes(norm)
 }
 
 // ─── Spanish data ─────────────────────────────────────────────────────────────
 const esLessons: Lesson[] = [
-  // Unit 1
   {
-    id: 'es-greetings',
-    title: 'Greetings',
-    icon: 'greeting',
-    xpReward: 10,
+    id: 'es-greetings', title: 'Greetings', icon: 'greeting', xpReward: 10,
     exercises: [
       mc('How do you say "Hello" in Spanish?', ['Hola', 'Adiós', 'Gracias', 'Por favor'], 0),
       tr('Thank you', 'en', 'Gracias', ['gracias']),
@@ -115,10 +127,7 @@ const esLessons: Lesson[] = [
     ],
   },
   {
-    id: 'es-numbers',
-    title: 'Numbers',
-    icon: 'numbers',
-    xpReward: 10,
+    id: 'es-numbers', title: 'Numbers', icon: 'numbers', xpReward: 10,
     exercises: [
       mc('What does "uno" mean?', ['0', '1', '2', '3'], 1),
       tr('three', 'en', 'tres'),
@@ -128,10 +137,7 @@ const esLessons: Lesson[] = [
     ],
   },
   {
-    id: 'es-colors',
-    title: 'Colors',
-    icon: 'colors',
-    xpReward: 10,
+    id: 'es-colors', title: 'Colors', icon: 'colors', xpReward: 10,
     exercises: [
       mc('"rojo" means…', ['Blue', 'Green', 'Red', 'Yellow'], 2),
       tr('blue', 'en', 'azul'),
@@ -140,12 +146,8 @@ const esLessons: Lesson[] = [
       tr('negro', 'target', 'black'),
     ],
   },
-  // Unit 2
   {
-    id: 'es-family',
-    title: 'Family',
-    icon: 'family',
-    xpReward: 12,
+    id: 'es-family', title: 'Family', icon: 'family', xpReward: 12,
     exercises: [
       mc('"madre" means…', ['Father', 'Sister', 'Mother', 'Brother'], 2),
       tr('father', 'en', 'padre'),
@@ -155,10 +157,7 @@ const esLessons: Lesson[] = [
     ],
   },
   {
-    id: 'es-descriptions',
-    title: 'Descriptions',
-    icon: 'conversation',
-    xpReward: 12,
+    id: 'es-descriptions', title: 'Descriptions', icon: 'conversation', xpReward: 12,
     exercises: [
       mc('"alto" means…', ['Short', 'Fat', 'Tall', 'Thin'], 2),
       tr('young', 'en', 'joven'),
@@ -167,12 +166,8 @@ const esLessons: Lesson[] = [
       tr('inteligente', 'target', 'intelligent', ['smart', 'clever']),
     ],
   },
-  // Unit 3
   {
-    id: 'es-food',
-    title: 'Food',
-    icon: 'food',
-    xpReward: 15,
+    id: 'es-food', title: 'Food', icon: 'food', xpReward: 15,
     exercises: [
       mc('"manzana" means…', ['Banana', 'Apple', 'Orange', 'Grape'], 1),
       tr('bread', 'en', 'pan'),
@@ -182,64 +177,38 @@ const esLessons: Lesson[] = [
     ],
   },
   {
-    id: 'es-restaurant',
-    title: 'Restaurant',
-    icon: 'restaurant',
-    xpReward: 15,
+    id: 'es-restaurant', title: 'Restaurant', icon: 'restaurant', xpReward: 15,
     exercises: [
       mc('How do you ask for the menu?', ['La cuenta', 'El menú', 'La mesa', 'La propina'], 1),
       tr('the bill', 'en', 'la cuenta', ['cuenta']),
       mc('"Tengo hambre" means…', ['I am thirsty', 'I am full', 'I am hungry', 'I want dessert'], 2),
-      mp([['I\'m hungry', 'Tengo hambre'], ['I\'m thirsty', 'Tengo sed'], ['the check', 'la cuenta'], ['delicious', 'delicioso']]),
-      tr('camarero', 'target', 'waiter', ['server', 'waiter']),
+      mp([["I'm hungry", 'Tengo hambre'], ["I'm thirsty", 'Tengo sed'], ['the check', 'la cuenta'], ['delicious', 'delicioso']]),
+      tr('camarero', 'target', 'waiter', ['server']),
     ],
   },
 ]
 
 const esUnits: Unit[] = [
-  {
-    id: 'es-u1', title: 'Unit 1', subtitle: 'Basics & Greetings',
-    color: '#58CC02', darkColor: '#46A302',
-    lessons: esLessons.slice(0, 3),
-  },
-  {
-    id: 'es-u2', title: 'Unit 2', subtitle: 'People & Family',
-    color: '#1CB0F6', darkColor: '#0E8FCC',
-    lessons: esLessons.slice(3, 5),
-  },
-  {
-    id: 'es-u3', title: 'Unit 3', subtitle: 'Food & Dining',
-    color: '#FF9600', darkColor: '#CC7800',
-    lessons: esLessons.slice(5, 7),
-  },
-  {
-    id: 'es-u4', title: 'Unit 4', subtitle: 'Travel & Places',
-    color: '#CE82FF', darkColor: '#A366CC',
-    locked: true,
-    lessons: [],
-  },
+  { id: 'es-u1', title: 'Unit 1', subtitle: 'Basics & Greetings', color: '#58CC02', darkColor: '#46A302', lessons: esLessons.slice(0, 3) },
+  { id: 'es-u2', title: 'Unit 2', subtitle: 'People & Family',    color: '#1CB0F6', darkColor: '#0E8FCC', lessons: esLessons.slice(3, 5) },
+  { id: 'es-u3', title: 'Unit 3', subtitle: 'Food & Dining',      color: '#FF9600', darkColor: '#CC7800', lessons: esLessons.slice(5, 7) },
+  { id: 'es-u4', title: 'Unit 4', subtitle: 'Travel & Places',    color: '#CE82FF', darkColor: '#A366CC', locked: true, lessons: [] },
 ]
 
 // ─── French data ──────────────────────────────────────────────────────────────
 const frLessons: Lesson[] = [
   {
-    id: 'fr-greetings',
-    title: 'Greetings',
-    icon: 'greeting',
-    xpReward: 10,
+    id: 'fr-greetings', title: 'Greetings', icon: 'greeting', xpReward: 10,
     exercises: [
-      mc('How do you say "Hello" in French?', ['Bonjour', 'Au revoir', 'Merci', 'S\'il vous plaît'], 0),
+      mc('How do you say "Hello" in French?', ['Bonjour', 'Au revoir', 'Merci', "S'il vous plaît"], 0),
       tr('Thank you', 'en', 'Merci', ['merci']),
-      mp([['Hello', 'Bonjour'], ['Goodbye', 'Au revoir'], ['Please', 'S\'il vous plaît'], ['Thank you', 'Merci']]),
+      mp([['Hello', 'Bonjour'], ['Goodbye', 'Au revoir'], ['Please', "S'il vous plaît"], ['Thank you', 'Merci']]),
       mc('"Bonsoir" means…', ['Good morning', 'Good evening', 'Goodbye', 'Thank you'], 1),
       tr('Excuse me', 'en', 'Excusez-moi', ['excusez-moi', 'excusez moi']),
     ],
   },
   {
-    id: 'fr-numbers',
-    title: 'Numbers',
-    icon: 'numbers',
-    xpReward: 10,
+    id: 'fr-numbers', title: 'Numbers', icon: 'numbers', xpReward: 10,
     exercises: [
       mc('What does "deux" mean?', ['1', '2', '3', '4'], 1),
       tr('ten', 'en', 'dix'),
@@ -249,10 +218,7 @@ const frLessons: Lesson[] = [
     ],
   },
   {
-    id: 'fr-colors',
-    title: 'Colors',
-    icon: 'colors',
-    xpReward: 10,
+    id: 'fr-colors', title: 'Colors', icon: 'colors', xpReward: 10,
     exercises: [
       mc('"rouge" means…', ['Blue', 'Green', 'Red', 'Yellow'], 2),
       tr('blue', 'en', 'bleu', ['bleue']),
@@ -262,10 +228,7 @@ const frLessons: Lesson[] = [
     ],
   },
   {
-    id: 'fr-family',
-    title: 'Family',
-    icon: 'family',
-    xpReward: 12,
+    id: 'fr-family', title: 'Family', icon: 'family', xpReward: 12,
     exercises: [
       mc('"mère" means…', ['Father', 'Grandmother', 'Mother', 'Sister'], 2),
       tr('father', 'en', 'père', ['pere']),
@@ -275,103 +238,31 @@ const frLessons: Lesson[] = [
     ],
   },
   {
-    id: 'fr-food',
-    title: 'Food',
-    icon: 'food',
-    xpReward: 15,
+    id: 'fr-food', title: 'Food', icon: 'food', xpReward: 15,
     exercises: [
       mc('"pomme" means…', ['Banana', 'Pear', 'Apple', 'Grape'], 2),
       tr('bread', 'en', 'pain'),
       mp([['apple', 'pomme'], ['bread', 'pain'], ['water', 'eau'], ['milk', 'lait']]),
       tr('fromage', 'target', 'cheese'),
-      mc('How do you say "I\'m hungry"?', ['J\'ai soif', 'J\'ai faim', 'J\'ai chaud', 'J\'ai froid'], 1),
+      mc("How do you say \"I'm hungry\"?", ["J'ai soif", "J'ai faim", "J'ai chaud", "J'ai froid"], 1),
     ],
   },
 ]
 
 const frUnits: Unit[] = [
-  {
-    id: 'fr-u1', title: 'Unit 1', subtitle: 'Basics & Greetings',
-    color: '#58CC02', darkColor: '#46A302',
-    lessons: frLessons.slice(0, 3),
-  },
-  {
-    id: 'fr-u2', title: 'Unit 2', subtitle: 'People & Family',
-    color: '#1CB0F6', darkColor: '#0E8FCC',
-    lessons: frLessons.slice(3, 5),
-  },
-  {
-    id: 'fr-u3', title: 'Unit 3', subtitle: 'Food & Dining',
-    color: '#FF9600', darkColor: '#CC7800',
-    locked: true,
-    lessons: [],
-  },
+  { id: 'fr-u1', title: 'Unit 1', subtitle: 'Basics & Greetings', color: '#58CC02', darkColor: '#46A302', lessons: frLessons.slice(0, 3) },
+  { id: 'fr-u2', title: 'Unit 2', subtitle: 'People & Family',    color: '#1CB0F6', darkColor: '#0E8FCC', lessons: frLessons.slice(3, 5) },
+  { id: 'fr-u3', title: 'Unit 3', subtitle: 'Food & Dining',      color: '#FF9600', darkColor: '#CC7800', locked: true, lessons: [] },
 ]
 
 // ─── All languages ─────────────────────────────────────────────────────────────
 export const LANGUAGES: LanguageMeta[] = [
-  {
-    id: 'es', name: 'Spanish', nativeName: 'Español',
-    color: '#FF4B4B', darkColor: '#CC3C3C',
-    description: '2nd most spoken language worldwide',
-    learners: '42M learners',
-    available: true,
-    units: esUnits,
-  },
-  {
-    id: 'fr', name: 'French', nativeName: 'Français',
-    color: '#1CB0F6', darkColor: '#0E8FCC',
-    description: 'Spoken on 5 continents',
-    learners: '19M learners',
-    available: true,
-    units: frUnits,
-  },
-  {
-    id: 'de', name: 'German', nativeName: 'Deutsch',
-    color: '#FFD900', darkColor: '#CCA600',
-    description: 'Most spoken language in the EU',
-    learners: '8M learners',
-    available: false,
-    units: [],
-  },
-  {
-    id: 'ja', name: 'Japanese', nativeName: '日本語',
-    color: '#FF9600', darkColor: '#CC7800',
-    description: 'Key language of East Asia',
-    learners: '13M learners',
-    available: false,
-    units: [],
-  },
-  {
-    id: 'ko', name: 'Korean', nativeName: '한국어',
-    color: '#CE82FF', darkColor: '#A366CC',
-    description: 'Rising global influence',
-    learners: '7M learners',
-    available: false,
-    units: [],
-  },
-  {
-    id: 'zh', name: 'Mandarin', nativeName: '中文',
-    color: '#FF4B4B', darkColor: '#CC3C3C',
-    description: 'Most spoken language on Earth',
-    learners: '5M learners',
-    available: false,
-    units: [],
-  },
-  {
-    id: 'pt', name: 'Portuguese', nativeName: 'Português',
-    color: '#58CC02', darkColor: '#46A302',
-    description: 'Spoken across 4 continents',
-    learners: '11M learners',
-    available: false,
-    units: [],
-  },
-  {
-    id: 'it', name: 'Italian', nativeName: 'Italiano',
-    color: '#58CC02', darkColor: '#46A302',
-    description: 'Language of art and culture',
-    learners: '6M learners',
-    available: false,
-    units: [],
-  },
+  { id: 'es', name: 'Spanish',    nativeName: 'Español',   color: '#FF4B4B', darkColor: '#CC3C3C', description: '2nd most spoken language worldwide', learners: '42M learners', available: true,  units: esUnits },
+  { id: 'fr', name: 'French',     nativeName: 'Français',  color: '#1CB0F6', darkColor: '#0E8FCC', description: 'Spoken on 5 continents',              learners: '19M learners', available: true,  units: frUnits },
+  { id: 'de', name: 'German',     nativeName: 'Deutsch',   color: '#FFD900', darkColor: '#CCA600', description: 'Most spoken language in the EU',       learners: '8M learners',  available: false, units: [] },
+  { id: 'ja', name: 'Japanese',   nativeName: '日本語',     color: '#FF9600', darkColor: '#CC7800', description: 'Key language of East Asia',            learners: '13M learners', available: false, units: [] },
+  { id: 'ko', name: 'Korean',     nativeName: '한국어',     color: '#CE82FF', darkColor: '#A366CC', description: 'Rising global influence',              learners: '7M learners',  available: false, units: [] },
+  { id: 'zh', name: 'Mandarin',   nativeName: '中文',       color: '#FF4B4B', darkColor: '#CC3C3C', description: 'Most spoken language on Earth',        learners: '5M learners',  available: false, units: [] },
+  { id: 'pt', name: 'Portuguese', nativeName: 'Português', color: '#58CC02', darkColor: '#46A302', description: 'Spoken across 4 continents',           learners: '11M learners', available: false, units: [] },
+  { id: 'it', name: 'Italian',    nativeName: 'Italiano',  color: '#58CC02', darkColor: '#46A302', description: 'Language of art and culture',          learners: '6M learners',  available: false, units: [] },
 ]
