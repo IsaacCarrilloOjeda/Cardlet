@@ -4,8 +4,32 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import type { StudyMaterial } from '@/types'
-import type { ScanResult, SuggestedAction } from '@/app/api/ai/scan-file/route'
-import type { ExecuteResult, ExecuteAction } from '@/app/api/ai/execute-material-action/route'
+
+interface SuggestedAction {
+  action: 'flashcards' | 'outline' | 'summary' | 'sections'
+  label: string
+  description: string
+  recommended: boolean
+}
+
+interface ScanResult {
+  text: string
+  contentType: 'textbook' | 'notes' | 'exam' | 'equations' | 'reference' | 'general'
+  summary: string
+  wordCount: number
+  suggestedActions: SuggestedAction[]
+}
+
+type ExecuteAction = 'flashcards' | 'outline' | 'summary' | 'sections'
+
+interface ExecuteResult {
+  type: ExecuteAction
+  setId?: string
+  cardCount?: number
+  content?: string
+  sectionCount?: number
+  materials?: Array<{ id: string; title: string }>
+}
 
 interface Props {
   material: StudyMaterial
