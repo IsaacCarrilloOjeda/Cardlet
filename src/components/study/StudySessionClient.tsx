@@ -9,7 +9,10 @@ import { ConfidenceButtons } from './ConfidenceButtons'
 import { ProgressBar } from './ProgressBar'
 import { CompletionScreen } from './CompletionScreen'
 import { AITutorChat } from './AITutorChat'
+import { PomodoroTimer } from './PomodoroTimer'
+import { ShortcutsModal } from './ShortcutsModal'
 import { useCredits, HINT_COST } from '@/components/layout/CreditsContext'
+import { useStarredCards } from '@/hooks/useStarredCards'
 import type { CardWithProgress } from '@/types'
 
 interface Props {
@@ -48,9 +51,13 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
   const [shuffleAnim, setShuffleAnim] = useState('')
   const [cramMode, setCramMode] = useState(false)
   const [reverseMode, setReverseMode] = useState(false)
+  const [starredOnly, setStarredOnly] = useState(false)
+  const [focusMode, setFocusMode] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [hint, setHint] = useState<{ text: string; level: number } | null>(null)
   const [hintLoading, setHintLoading] = useState(false)
   const { consumeCredits } = useCredits()
+  const { starredIds } = useStarredCards(setId)
 
   function handleShuffle() {
     setShuffleAnim('scale-[0.95]')
@@ -60,6 +67,21 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
     setCurrentIndex(0)
     setIsFlipped(false)
     setShowTutor(false)
+  }
+
+  function handleStarredOnly() {
+    const next = !starredOnly
+    setStarredOnly(next)
+    setCurrentIndex(0)
+    setIsFlipped(false)
+    setIsComplete(false)
+    setShowTutor(false)
+    if (next) {
+      const filtered = cards.filter((c) => starredIds.has(c.id))
+      setDeck(filtered.length > 0 ? filtered : cards)
+    } else {
+      setDeck(cards)
+    }
   }
 
   const currentCard = deck[currentIndex]
@@ -115,6 +137,16 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
   // Reset hint when card changes
   useEffect(() => { setHint(null) }, [currentIndex])
 
+  // Focus mode — hide the sticky header
+  useEffect(() => {
+    if (focusMode) {
+      document.body.classList.add('focus-mode')
+    } else {
+      document.body.classList.remove('focus-mode')
+    }
+    return () => { document.body.classList.remove('focus-mode') }
+  }, [focusMode])
+
   const handleSkip = useCallback(() => {
     if (currentIndex + 1 >= deck.length) {
       setIsComplete(true)
@@ -154,6 +186,9 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
         case 's':
         case 'S':
           handleSkip()
+          break
+        case '?':
+          setShowShortcuts((v) => !v)
           break
       }
     }
@@ -199,11 +234,26 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-2">
+      <div className="mb-6 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
         <Link href={back} className="text-sm rounded-lg border border-[var(--muted)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--foreground)] px-3 py-1.5 transition-colors inline-flex items-center gap-1 shrink-0">
           ← {setTitle}
         </Link>
         <div className="flex items-center gap-2">
+        <button
+          onClick={handleStarredOnly}
+          title={starredOnly ? 'Showing starred cards only' : 'Study starred cards only'}
+          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1 ${
+            starredOnly
+              ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+              : 'border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)]'
+          }`}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill={starredOnly ? 'var(--accent)' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          {starredOnly ? `Starred (${deck.length})` : 'Starred'}
+        </button>
         <button
           onClick={() => setCramMode((v) => !v)}
           title={cramMode ? 'Cram mode on — SM-2 paused' : 'Toggle cram mode'}
@@ -243,8 +293,32 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
           </svg>
           Shuffle
         </button>
+        <button
+          onClick={() => setFocusMode((v) => !v)}
+          title={focusMode ? 'Exit focus mode' : 'Focus mode — hide nav'}
+          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors flex items-center gap-1 ${
+            focusMode
+              ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+              : 'border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)]'
+          }`}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          Focus
+        </button>
+        <button
+          onClick={() => setShowShortcuts(true)}
+          title="Keyboard shortcuts (?)"
+          className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-2.5 py-1.5 text-xs font-bold text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-colors"
+        >
+          ?
+        </button>
         </div>
+        </div>
+        <PomodoroTimer />
       </div>
+</div>
 
       {isComplete ? (
         <CompletionScreen
@@ -321,6 +395,8 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
           onClose={handleTutorClose}
         />
       )}
+
+      <ShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   )
 }

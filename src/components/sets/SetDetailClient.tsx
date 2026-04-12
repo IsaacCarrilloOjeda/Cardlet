@@ -3,7 +3,7 @@
 import { useState, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { updateStudySetAction } from '@/lib/actions'
+import { updateStudySetAction, duplicateStudySetAction } from '@/lib/actions'
 import { CardList } from './CardList'
 import { AIGenerateModal } from './AIGenerateModal'
 import { CSVImportModal } from './CSVImportModal'
@@ -26,9 +26,20 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false }:
   const [showCSVModal, setShowCSVModal] = useState(false)
   const [showPdfModal, setShowPdfModal] = useState(false)
   const [showExamModal, setShowExamModal] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isPublic, setIsPublic] = useState(set.is_public)
   const formRef = useRef<HTMLFormElement>(null)
+
+  async function handleDuplicate() {
+    setIsDuplicating(true)
+    try {
+      const { id } = await duplicateStudySetAction(set.id)
+      router.push(`/sets/${id}`)
+    } finally {
+      setIsDuplicating(false)
+    }
+  }
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -177,6 +188,17 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false }:
                     className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-40"
                   >
                     📝 Practice Exam
+                  </button>
+                  <button
+                    onClick={handleDuplicate}
+                    disabled={isDuplicating}
+                    className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-60 flex items-center gap-1.5"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    {isDuplicating ? 'Duplicating…' : 'Duplicate Set'}
                   </button>
                 </>
               )}

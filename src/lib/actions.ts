@@ -78,6 +78,48 @@ export async function deleteStudySetAction(setId: string): Promise<void> {
   revalidatePath('/')
 }
 
+export async function duplicateStudySetAction(setId: string): Promise<{ id: string }> {
+  const user = await getAuthUser()
+  const supabase = await createClient()
+
+  // Fetch original set + cards in parallel
+  const [{ data: original }, { data: origCards }] = await Promise.all([
+    supabase.from('study_sets').select('*').eq('id', setId).single(),
+    supabase.from('cards').select('*').eq('set_id', setId).order('created_at', { ascending: true }),
+  ])
+  if (!original) throw new Error('Set not found')
+
+  // Create the copy (always private)
+  const { data: newSet, error: setErr } = await supabase
+    .from('study_sets')
+    .insert({
+      user_id: user.id,
+      title: `${original.title} (Copy)`,
+      description: original.description,
+      subject: original.subject,
+      is_public: false,
+    })
+    .select()
+    .single()
+  if (setErr || !newSet) throw new Error('Failed to duplicate set')
+
+  // Copy cards if any
+  if (origCards && origCards.length > 0) {
+    const rows = origCards.map(({ front, back, difficulty, image_url }: { front: string; back: string; difficulty: number; image_url: string | null }) => ({
+      set_id: newSet.id,
+      front,
+      back,
+      difficulty,
+      image_url: image_url ?? null,
+    }))
+    const { error: cardsErr } = await supabase.from('cards').insert(rows)
+    if (cardsErr) throw new Error('Failed to copy cards')
+  }
+
+  revalidatePath('/')
+  return { id: newSet.id }
+}
+
 // ─── Cards ───────────────────────────────────────────────────────────────────
 
 export async function createCardAction(setId: string, formData: FormData): Promise<void> {

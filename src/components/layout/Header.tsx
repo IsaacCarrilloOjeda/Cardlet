@@ -11,15 +11,6 @@ import { CircleProgress } from './CircleProgress'
 import { MobileNavDrawer } from './MobileNavDrawer'
 import { CreateSetModal } from '@/components/dashboard/CreateSetModal'
 
-function CardletIcon({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="10" width="24" height="16" rx="3" fill="var(--accent)" opacity="0.3" />
-      <rect x="4" y="6" width="24" height="16" rx="3" fill="var(--accent)" opacity="0.6" />
-      <rect x="4" y="2" width="24" height="16" rx="3" fill="var(--accent)" />
-    </svg>
-  )
-}
 
 function SettingsDropdown({ onClose }: { onClose: () => void }) {
   const { theme, toggle, accentKey, setAccent, ctaKey, setCta } = useTheme()
@@ -133,7 +124,6 @@ function LoggedOutHeader() {
     <header className="sticky top-0 z-50 border-b border-[var(--card-border)] bg-[var(--background)]/90 backdrop-blur-md h-14">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 h-full">
         <Link href="/" className="flex items-center gap-2 font-bold text-base">
-          <CardletIcon />
           <span>Cardlet</span>
         </Link>
         <div className="flex items-center gap-2">
@@ -190,8 +180,9 @@ function LoggedInHeader({ avatarUrl, isAdmin }: { avatarUrl: string | null; isAd
           {/* Mobile hamburger */}
           <button
             onClick={() => setDrawerOpen(true)}
-            className="lg:hidden rounded-full p-2 -ml-1 text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
+            className="lg:hidden rounded-full p-2 -ml-1 hover:bg-[var(--surface)] transition-colors"
             aria-label="Open menu"
+            style={{ color: 'var(--accent)' }}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
@@ -199,7 +190,6 @@ function LoggedInHeader({ avatarUrl, isAdmin }: { avatarUrl: string | null; isAd
           </button>
 
           <Link href="/" className="flex items-center gap-2 font-bold text-base shrink-0">
-            <CardletIcon size={26} />
             <span className="hidden sm:block">Cardlet</span>
           </Link>
 
@@ -328,7 +318,6 @@ export function Header() {
       <header className="sticky top-0 z-50 border-b border-[var(--card-border)] bg-[var(--background)]/90 backdrop-blur-md h-14">
         <div className="mx-auto flex max-w-7xl items-center px-4 h-full">
           <Link href="/" className="flex items-center gap-2 font-bold text-base">
-            <CardletIcon size={26} />
             <span>Cardlet</span>
           </Link>
         </div>

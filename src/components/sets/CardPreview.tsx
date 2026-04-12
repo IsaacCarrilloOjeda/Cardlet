@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { deleteCardAction, updateCardImproveAction, setCardImageAction } from '@/lib/actions'
 import { CardForm } from './CardForm'
 import { SpeakButton } from '@/components/study/SpeakButton'
+import { useStarredCards } from '@/hooks/useStarredCards'
 import { useCredits, CARD_IMPROVE_COST, CARD_IMAGE_COST, ELI_EXPLAIN_COST } from '@/components/layout/CreditsContext'
 import type { Card } from '@/types'
 
@@ -32,7 +33,9 @@ export function CardPreview({ card, setId, index }: Props) {
   const [eli, setEli] = useState<string | null>(null)
   const [eliLevel, setEliLevel] = useState<5 | 15 | 25>(15)
   const { consumeCredits } = useCredits()
+  const { isStarred, toggle: toggleStar } = useStarredCards(setId)
   const diff = DIFFICULTY_LABELS[card.difficulty] ?? DIFFICULTY_LABELS[3]
+  const starred = isStarred(card.id)
 
   async function handleImprove() {
     if (!consumeCredits(CARD_IMPROVE_COST)) return
@@ -113,6 +116,18 @@ export function CardPreview({ card, setId, index }: Props) {
     <div className={`group relative rounded-xl border border-[var(--card-border)] bg-[var(--card)] ${isPending ? 'opacity-50' : ''}`}>
       {/* Card number */}
       <span className="absolute left-4 top-3 text-xs text-[var(--muted)]">#{index + 1}</span>
+
+      {/* Star button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); toggleStar(card.id) }}
+        className="absolute right-16 top-2 p-1 rounded-md transition-colors hover:bg-[var(--surface)]"
+        aria-label={starred ? 'Unstar card' : 'Star card'}
+        title={starred ? 'Remove star' : 'Star this card'}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill={starred ? 'var(--accent)' : 'none'} stroke={starred ? 'var(--accent)' : 'var(--muted)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      </button>
 
       {/* Difficulty */}
       <span className={`absolute right-4 top-3 text-xs font-medium ${diff.color}`}>{diff.label}</span>

@@ -72,6 +72,17 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Focus mode: hide the sticky header for distraction-free study */
+body.focus-mode header {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+body.focus-mode header:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
