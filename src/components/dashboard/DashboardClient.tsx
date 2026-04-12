@@ -173,10 +173,7 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
       {/* Top stat row: streak + mistake deck */}
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 flex items-center gap-3">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400 shrink-0">
-            <path d="M12 3C10 6 6 9 6 14C6 18 9 22 12 22C15 22 18 18 18 14C18 9 15 6 14 5C14 8 13 10 13 10C12.5 7 12.5 5 12 3Z"/>
-            <path d="M12 13C10.5 15 10 17.5 11 20C11.5 21.5 12.5 21.5 13 20C14 17.5 13.5 15 12 13Z"/>
-          </svg>
+          <span className="text-2xl leading-none shrink-0 select-none">{'🔥\uFE0F'}</span>
           <div>
             <p className="text-xl font-bold leading-tight">{streak}</p>
             <p className="text-[11px] text-[var(--muted)]">day streak</p>
@@ -225,10 +222,7 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
           className="mb-6 flex items-center justify-between rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-5 py-4"
         >
           <div className="flex items-center gap-3">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400 shrink-0">
-              <path d="M12 2c0 5-5 5.5-5 10a5 5 0 0010 0C17 7.5 12 7 12 2z"/>
-              <path d="M10 14c-.5 2 .5 4 2 4s2.5-2 2-4"/>
-            </svg>
+            <span className="text-2xl leading-none shrink-0 select-none">{'🔥\uFE0F'}</span>
             <div>
               <p className="font-bold text-sm text-[var(--foreground)]">
                 {dueCount} {dueCount === 1 ? 'card' : 'cards'} due for review today
