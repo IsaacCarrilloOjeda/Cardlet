@@ -211,6 +211,7 @@ function LoggedInHeader({ avatarUrl, isAdmin }: { avatarUrl: string | null; isAd
               { href: '/study/mistakes', label: 'Mistake Deck' },
               { href: '/study/buddy', label: 'Study Buddy' },
               { href: '/solve', label: 'Equation Solver' },
+              { href: '/languages', label: 'Languages' },
             ].map(({ href, label }) => (
               <Link
                 key={href}
