@@ -318,7 +318,6 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
         </div>
         <PomodoroTimer />
       </div>
-</div>
 
       {isComplete ? (
         <CompletionScreen
