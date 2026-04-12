@@ -9,6 +9,7 @@ import {
   adminDeleteMaterialAction,
   adminConvertMaterialToSetAction,
 } from '@/lib/actions'
+import { MaterialProcessModal } from './MaterialProcessModal'
 
 interface Props { materials: StudyMaterial[] }
 
@@ -26,6 +27,7 @@ export function AdminMaterialsClient({ materials: initialMaterials }: Props) {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [converting, setConverting] = useState<string | null>(null)
   const [convertedSetId, setConvertedSetId] = useState<Record<string, string>>({})
+  const [processingMaterial, setProcessingMaterial] = useState<StudyMaterial | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   function handleUpload(e: React.FormEvent<HTMLFormElement>) {
@@ -176,6 +178,13 @@ export function AdminMaterialsClient({ materials: initialMaterials }: Props) {
                 >
                   View
                 </a>
+                {/* Two-AI pipeline */}
+                <button
+                  onClick={() => setProcessingMaterial(m)}
+                  className="rounded-lg border border-[var(--accent)]/50 bg-[var(--accent)]/8 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/15 transition-colors text-center"
+                >
+                  ✦ Process with AI
+                </button>
                 {convertedSetId[m.id] ? (
                   <Link
                     href={`/sets/${convertedSetId[m.id]}`}
@@ -188,8 +197,9 @@ export function AdminMaterialsClient({ materials: initialMaterials }: Props) {
                     onClick={() => handleConvert(m.id)}
                     disabled={isPending || converting === m.id}
                     className="rounded-lg border border-[var(--card-border)] px-3 py-1.5 text-xs text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
+                    title="Quick convert using only title/description (no file reading)"
                   >
-                    {converting === m.id ? 'Converting…' : '✨ → Set'}
+                    {converting === m.id ? 'Converting…' : '✨ → Set (quick)'}
                   </button>
                 )}
                 <button
@@ -203,6 +213,16 @@ export function AdminMaterialsClient({ materials: initialMaterials }: Props) {
             </div>
           ))}
         </div>
+      )}
+
+      {processingMaterial && (
+        <MaterialProcessModal
+          material={processingMaterial}
+          onClose={() => {
+            setProcessingMaterial(null)
+            router.refresh()
+          }}
+        />
       )}
     </div>
   )

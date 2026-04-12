@@ -205,18 +205,21 @@ function LoggedInHeader({ avatarUrl, isAdmin }: { avatarUrl: string | null; isAd
 
           {/* Desktop nav links */}
           <nav className="hidden lg:flex items-center gap-1 shrink-0">
-            <Link
-              href="/explore"
-              className="rounded-full px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
-            >
-              Explore
-            </Link>
-            <Link
-              href="/solve"
-              className="rounded-full px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
-            >
-              Equation Solver
-            </Link>
+            {[
+              { href: '/explore', label: 'Explore' },
+              { href: '/leaderboard', label: 'Leaderboard' },
+              { href: '/study/mistakes', label: 'Mistake Deck' },
+              { href: '/study/buddy', label: 'Study Buddy' },
+              { href: '/solve', label: 'Equation Solver' },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className="rounded-full px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors whitespace-nowrap"
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
 
           <form onSubmit={handleSearch} className="flex-1 max-w-xl">

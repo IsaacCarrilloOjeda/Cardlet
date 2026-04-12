@@ -10,6 +10,16 @@ interface Props {
   onTranscribed: (text: string, kind: 'text' | 'equation' | 'mixed') => void
   /** Optional override label for the confirm action */
   confirmLabel?: string
+  /**
+   * If provided, a "Generate Flashcards" quick-action button appears
+   * when the detected content is text or mixed. Called instead of onTranscribed.
+   */
+  onGenerateFlashcards?: (text: string) => void
+  /**
+   * If provided, a "Solve Equation" quick-action button appears
+   * when the detected content is equation or mixed. Called instead of onTranscribed.
+   */
+  onSolveEquation?: (text: string) => void
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -21,7 +31,14 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
-export function SnapPhotoModal({ open, onClose, onTranscribed, confirmLabel = 'Use Transcription' }: Props) {
+export function SnapPhotoModal({
+  open,
+  onClose,
+  onTranscribed,
+  confirmLabel = 'Use Transcription',
+  onGenerateFlashcards,
+  onSolveEquation,
+}: Props) {
   const { credits, consumeCredits } = useCredits()
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -147,7 +164,13 @@ export function SnapPhotoModal({ open, onClose, onTranscribed, confirmLabel = 'U
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Transcription</p>
-                    <span className="text-[10px] rounded-full bg-[var(--accent)]/20 text-[var(--accent)] px-2 py-0.5 font-bold uppercase">{kind}</span>
+                    <span className={`text-[10px] rounded-full px-2 py-0.5 font-bold uppercase ${
+                      kind === 'equation'
+                        ? 'bg-purple-500/20 text-purple-400'
+                        : kind === 'mixed'
+                        ? 'bg-yellow-500/20 text-yellow-400'
+                        : 'bg-[var(--accent)]/20 text-[var(--accent)]'
+                    }`}>{kind}</span>
                   </div>
                   <textarea
                     value={text}
@@ -156,6 +179,43 @@ export function SnapPhotoModal({ open, onClose, onTranscribed, confirmLabel = 'U
                     className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-xs font-mono focus:border-[var(--accent)] focus:outline-none resize-none"
                   />
                   <p className="mt-1 text-[10px] text-[var(--muted)]">⚠️ AI OCR can make mistakes — review before using.</p>
+
+                  {/* Smart action suggestions */}
+                  {(onGenerateFlashcards || onSolveEquation) && (
+                    <div className="mt-3 rounded-lg border border-[var(--card-border)] bg-[var(--surface)] px-3 py-2.5">
+                      <p className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
+                        Quick actions
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {onSolveEquation && (kind === 'equation' || kind === 'mixed') && (
+                          <button
+                            onClick={() => {
+                              if (!text) return
+                              onSolveEquation(text)
+                              reset()
+                              onClose()
+                            }}
+                            className="flex items-center gap-1.5 rounded-full border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-400 hover:bg-purple-500/20 transition-colors"
+                          >
+                            <span>🧮</span> Solve Equation
+                          </button>
+                        )}
+                        {onGenerateFlashcards && (kind === 'text' || kind === 'mixed') && (
+                          <button
+                            onClick={() => {
+                              if (!text) return
+                              onGenerateFlashcards(text)
+                              reset()
+                              onClose()
+                            }}
+                            className="flex items-center gap-1.5 rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+                          >
+                            <span>🃏</span> Generate Flashcards
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
