@@ -4,6 +4,9 @@ export const size = { width: 512, height: 512 }
 export const contentType = 'image/png'
 
 export default function Icon() {
+  const cardW = 390
+  const cardH = 300
+
   return new ImageResponse(
     (
       <div
@@ -14,30 +17,31 @@ export default function Icon() {
           position: 'relative',
           background: '#0a0a0a',
           borderRadius: 96,
+          overflow: 'hidden',
         }}
       >
-        {/* Back card — offset upper-left */}
+        {/* Back card — top-left corner at (0, 0) */}
         <div
           style={{
             position: 'absolute',
-            width: 286,
-            height: 214,
+            width: cardW,
+            height: cardH,
             background: '#2e1065',
-            borderRadius: 30,
-            top: 106,
-            left: 86,
+            borderRadius: 36,
+            top: 0,
+            left: 0,
           }}
         />
-        {/* Front card — offset lower-right */}
+        {/* Front card — bottom-right corner at (512, 512) */}
         <div
           style={{
             position: 'absolute',
-            width: 286,
-            height: 214,
+            width: cardW,
+            height: cardH,
             background: '#5b21b6',
-            borderRadius: 30,
-            top: 158,
-            left: 138,
+            borderRadius: 36,
+            top: 512 - cardH,
+            left: 512 - cardW,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -46,7 +50,7 @@ export default function Icon() {
           <div
             style={{
               color: '#ffffff',
-              fontSize: 134,
+              fontSize: 150,
               fontWeight: 700,
               fontFamily: 'sans-serif',
             }}
