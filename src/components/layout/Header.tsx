@@ -203,6 +203,22 @@ function LoggedInHeader({ avatarUrl, isAdmin }: { avatarUrl: string | null; isAd
             <span className="hidden sm:block">Cardlet</span>
           </Link>
 
+          {/* Desktop nav links */}
+          <nav className="hidden lg:flex items-center gap-1 shrink-0">
+            <Link
+              href="/explore"
+              className="rounded-full px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
+            >
+              Explore
+            </Link>
+            <Link
+              href="/solve"
+              className="rounded-full px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
+            >
+              Equation Solver
+            </Link>
+          </nav>
+
           <form onSubmit={handleSearch} className="flex-1 max-w-xl">
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--muted)] pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
