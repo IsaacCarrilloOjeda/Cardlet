@@ -8,15 +8,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 function HeroSection() {
   return (
     <section className="py-24 px-4 text-center relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-[var(--accent)]/10 blur-3xl" />
-      </div>
-
       <div className="relative max-w-4xl mx-auto">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 px-4 py-1.5 text-xs font-semibold text-[var(--accent)] mb-6">
-          <span>✨</span> AI-powered studying
+        <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-4 py-1.5 text-xs font-semibold text-[var(--accent)] mb-6">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="12" y1="2" x2="12" y2="6"/>
+            <line x1="12" y1="18" x2="12" y2="22"/>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+            <line x1="2" y1="12" x2="6" y2="12"/>
+            <line x1="18" y1="12" x2="22" y2="12"/>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+          </svg>
+          AI-powered studying
         </div>
 
         <h1 className="text-5xl md:text-7xl font-black text-[var(--foreground)] leading-[1.05] mb-6">
@@ -82,7 +87,11 @@ function AIGenerationSection() {
           <ul className="flex flex-col gap-3 mb-8">
             {['Generate from notes or any topic', 'PDF and document import', 'Edit and customize every card', 'AI tutor to explain hard concepts'].map((item) => (
               <li key={item} className="flex items-center gap-3 text-[var(--foreground)] text-sm">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)]/20 text-[var(--accent)] font-bold text-xs shrink-0">✓</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)]/20 text-[var(--accent)] shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </span>
                 {item}
               </li>
             ))}
@@ -103,7 +112,7 @@ function AIGenerationSection() {
           </div>
           <div className="flex items-center gap-2 mb-4">
             <div className="h-px flex-1 bg-[var(--card-border)]" />
-            <span className="text-xs text-[var(--accent)] font-semibold">10 cards generated ✨</span>
+            <span className="text-xs text-[var(--accent)] font-semibold">10 cards generated</span>
             <div className="h-px flex-1 bg-[var(--card-border)]" />
           </div>
           {[
@@ -126,10 +135,49 @@ function AIGenerationSection() {
 // ── Feature: Study Modes ─────────────────────────────────────────────────────
 function StudyModesSection() {
   const modes = [
-    { icon: '🃏', name: 'Flashcards', desc: 'Classic flip-card review', active: true },
-    { icon: '✅', name: 'Multiple Choice', desc: 'AI-generated answer choices' },
-    { icon: '✏️', name: 'Written', desc: 'Type your answer, AI grades it' },
-    { icon: '🔀', name: 'Match', desc: 'Drag-and-drop pairing game' },
+    {
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="7" width="14" height="10" rx="2"/>
+          <path d="M7 7V5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2"/>
+        </svg>
+      ),
+      name: 'Flashcards',
+      desc: 'Classic flip-card review',
+      active: true,
+    },
+    {
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+      ),
+      name: 'Multiple Choice',
+      desc: 'AI-generated answer choices',
+    },
+    {
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+      ),
+      name: 'Written',
+      desc: 'Type your answer, AI grades it',
+    },
+    {
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="16 3 21 3 21 8"/>
+          <line x1="4" y1="20" x2="21" y2="3"/>
+          <polyline points="21 16 21 21 16 21"/>
+          <line x1="15" y1="15" x2="21" y2="21"/>
+        </svg>
+      ),
+      name: 'Match',
+      desc: 'Drag-and-drop pairing game',
+    },
   ]
 
   return (
@@ -146,7 +194,7 @@ function StudyModesSection() {
                   : 'bg-[var(--surface)] border-[var(--card-border)] hover:border-[var(--accent)]/30'
               }`}
             >
-              <p className="text-2xl mb-2">{mode.icon}</p>
+              <div className="mb-3 text-[var(--accent)]">{mode.icon}</div>
               <p className="font-bold text-sm text-[var(--foreground)] mb-1">{mode.name}</p>
               <p className="text-xs text-[var(--muted)]">{mode.desc}</p>
             </div>
@@ -182,12 +230,12 @@ function StatsSection() {
   ]
 
   return (
-    <section className="py-16 px-4" style={{ background: 'var(--accent)' }}>
+    <section className="py-16 px-4 bg-[var(--surface)] border-y border-[var(--card-border)]">
       <div className="max-w-4xl mx-auto grid grid-cols-3 gap-8 text-center">
         {stats.map((s) => (
           <div key={s.value}>
-            <p className="text-4xl md:text-5xl font-black text-white">{s.value}</p>
-            <p className="text-white/70 text-sm mt-1">{s.label}</p>
+            <p className="text-4xl md:text-5xl font-black text-[var(--accent)]">{s.value}</p>
+            <p className="text-[var(--muted)] text-sm mt-1">{s.label}</p>
           </div>
         ))}
       </div>
@@ -362,12 +410,12 @@ function FAQSection() {
 // ── CTA Banner ───────────────────────────────────────────────────────────────
 function CTABanner() {
   return (
-    <section className="py-20 px-4 text-center" style={{ background: 'linear-gradient(135deg, var(--accent), #7c3aed)' }}>
+    <section className="py-20 px-4 text-center bg-[var(--surface)]">
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-5xl font-black text-white mb-4 leading-tight">
+        <h2 className="text-5xl font-black text-[var(--foreground)] mb-4 leading-tight">
           Start studying smarter today
         </h2>
-        <p className="text-white/70 text-lg mb-8">
+        <p className="text-[var(--muted)] text-lg mb-8">
           Join thousands of students already using Cardlet to ace their exams.
         </p>
         <Link

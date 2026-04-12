@@ -7,6 +7,8 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { useTheme, ACCENT_COLORS, CTA_COLORS, type AccentKey, type CtaKey } from './ThemeProvider'
+import { CircleProgress } from './CircleProgress'
+import { MobileNavDrawer } from './MobileNavDrawer'
 import { CreateSetModal } from '@/components/dashboard/CreateSetModal'
 
 function CardletIcon({ size = 28 }: { size?: number }) {
@@ -47,7 +49,6 @@ function SettingsDropdown({ onClose }: { onClose: () => void }) {
           )}
           {theme === 'dark' ? 'Light mode' : 'Dark mode'}
         </span>
-        <span className="text-xs">{theme === 'dark' ? '☀️' : '🌙'}</span>
       </button>
 
       <div className="mt-1 border-t border-[var(--card-border)] pt-2 px-3">
@@ -166,6 +167,7 @@ function LoggedInHeader({ avatarUrl }: { avatarUrl: string | null }) {
   const [query, setQuery] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -185,6 +187,17 @@ function LoggedInHeader({ avatarUrl }: { avatarUrl: string | null }) {
     <>
       <header className="sticky top-0 z-50 border-b border-[var(--card-border)] bg-[var(--background)]/90 backdrop-blur-md h-14">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 h-full">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="lg:hidden rounded-full p-2 -ml-1 text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
+            aria-label="Open menu"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
           <Link href="/" className="flex items-center gap-2 font-bold text-base shrink-0">
             <CardletIcon size={26} />
             <span className="hidden sm:block">Cardlet</span>
@@ -223,6 +236,11 @@ function LoggedInHeader({ avatarUrl }: { avatarUrl: string | null }) {
               Upgrade
             </Link>
 
+            {/* Mobile credits widget — sits to the left of Settings + Profile */}
+            <div className="lg:hidden">
+              <CircleProgress variant="header" />
+            </div>
+
             <div className="relative" ref={settingsRef}>
               <SettingsButton onClick={() => setSettingsOpen((o) => !o)} />
               <AnimatePresence>
@@ -255,6 +273,7 @@ function LoggedInHeader({ avatarUrl }: { avatarUrl: string | null }) {
       </header>
 
       {showCreateModal && <CreateSetModal onClose={() => setShowCreateModal(false)} />}
+      <MobileNavDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </>
   )
 }

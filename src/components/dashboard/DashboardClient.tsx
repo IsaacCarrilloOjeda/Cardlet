@@ -7,6 +7,7 @@ import { StudySetCard } from './StudySetCard'
 import { CreateSetModal } from './CreateSetModal'
 import { DashboardSidebar } from './DashboardSidebar'
 import { DailyChallengeCard } from './DailyChallengeCard'
+import { AutoTagWidget } from './AutoTagWidget'
 import type { StudySet, DailyChallengeCard as DailyCard } from '@/types'
 import {
   renameFolderAction,
@@ -32,16 +33,12 @@ function getFolderStyle(): React.CSSProperties {
   }
 }
 
-function getFolderIcon(name: string) {
-  const lower = name.toLowerCase()
-  if (lower.includes('math') || lower.includes('calc') || lower.includes('algebra') || lower.includes('geometry')) return '📐'
-  if (lower.includes('science') || lower.includes('bio') || lower.includes('chem') || lower.includes('phys')) return '🔬'
-  if (lower.includes('history') || lower.includes('geo') || lower.includes('aphg')) return '🌍'
-  if (lower.includes('english') || lower.includes('lit') || lower.includes('writing')) return '📚'
-  if (lower.includes('language') || lower.includes('spanish') || lower.includes('french') || lower.includes('latin')) return '🗣️'
-  if (lower.includes('art') || lower.includes('music')) return '🎨'
-  if (lower.includes('computer') || lower.includes('code') || lower.includes('program')) return '💻'
-  return '📁'
+function getFolderIcon(_name: string) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+    </svg>
+  )
 }
 
 export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, dailyCard = null }: Props) {
@@ -133,7 +130,7 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
           All Subjects
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-xl">{getFolderIcon(activeFolder)}</span>
+          <span className="flex items-center">{getFolderIcon(activeFolder)}</span>
           <h1 className="text-xl font-bold">{activeFolder}</h1>
           <span className="text-sm text-[var(--muted)]">· {setsInFolder.length} {setsInFolder.length === 1 ? 'set' : 'sets'}</span>
         </div>
@@ -147,7 +144,7 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
 
       {setsInFolder.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-[var(--card-border)] py-20 text-center">
-          <p className="text-4xl">{getFolderIcon(activeFolder)}</p>
+          <div className="mb-2">{getFolderIcon(activeFolder)}</div>
           <p className="text-[var(--muted)]">No sets in {activeFolder} yet.</p>
           <button
             onClick={() => setShowModal(true)}
@@ -176,10 +173,13 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
       {/* Top stat row: streak + mistake deck */}
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 flex items-center gap-3">
-          <span className="text-2xl">🔥</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400 shrink-0">
+            <path d="M12 3C10 6 6 9 6 14C6 18 9 22 12 22C15 22 18 18 18 14C18 9 15 6 14 5C14 8 13 10 13 10C12.5 7 12.5 5 12 3Z"/>
+            <path d="M12 13C10.5 15 10 17.5 11 20C11.5 21.5 12.5 21.5 13 20C14 17.5 13.5 15 12 13Z"/>
+          </svg>
           <div>
             <p className="text-xl font-bold leading-tight">{streak}</p>
-            <p className="text-[11px] text-[var(--muted)]">day {streak === 1 ? 'streak' : 'streak'}</p>
+            <p className="text-[11px] text-[var(--muted)]">day streak</p>
           </div>
         </div>
         {mistakeCount > 0 ? (
@@ -187,7 +187,11 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
             href="/study/mistakes"
             className="rounded-2xl border border-red-500/30 bg-red-500/5 px-5 py-4 flex items-center gap-3 hover:border-red-500/50 transition-colors group"
           >
-            <span className="text-2xl">🎯</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-red-400 shrink-0">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="6"/>
+              <circle cx="12" cy="12" r="2"/>
+            </svg>
             <div className="flex-1">
               <p className="text-sm font-bold leading-tight">Review Mistakes</p>
               <p className="text-[11px] text-[var(--muted)]">{mistakeCount} {mistakeCount === 1 ? 'card needs' : 'cards need'} another look</p>
@@ -196,7 +200,9 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
           </Link>
         ) : (
           <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 flex items-center gap-3">
-            <span className="text-2xl">✨</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--success)] shrink-0">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
             <div>
               <p className="text-sm font-bold leading-tight">No mistakes</p>
               <p className="text-[11px] text-[var(--muted)]">You&apos;re crushing every card</p>
@@ -208,6 +214,9 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
       {/* Daily Challenge */}
       {dailyCard && <DailyChallengeCard card={dailyCard} />}
 
+      {/* Auto-tag suggestion widget */}
+      <AutoTagWidget sets={sets} />
+
       {/* Due-card banner */}
       {dueCount > 0 && (
         <motion.div
@@ -216,7 +225,10 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
           className="mb-6 flex items-center justify-between rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-5 py-4"
         >
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🔥</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400 shrink-0">
+              <path d="M12 2c0 5-5 5.5-5 10a5 5 0 0010 0C17 7.5 12 7 12 2z"/>
+              <path d="M10 14c-.5 2 .5 4 2 4s2.5-2 2-4"/>
+            </svg>
             <div>
               <p className="font-bold text-sm text-[var(--foreground)]">
                 {dueCount} {dueCount === 1 ? 'card' : 'cards'} due for review today
@@ -299,7 +311,7 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
                   style={getFolderStyle()}
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <span className="text-3xl">{getFolderIcon(folder)}</span>
+                    <div className="mb-1">{getFolderIcon(folder)}</div>
                     <div
                       className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => e.stopPropagation()}

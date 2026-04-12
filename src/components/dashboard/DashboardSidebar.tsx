@@ -11,16 +11,12 @@ interface Props {
   onAddFolder: () => void
 }
 
-function getFolderIcon(name: string) {
-  const lower = name.toLowerCase()
-  if (lower.includes('math') || lower.includes('calc') || lower.includes('algebra') || lower.includes('geometry')) return '📐'
-  if (lower.includes('science') || lower.includes('bio') || lower.includes('chem') || lower.includes('phys')) return '🔬'
-  if (lower.includes('history') || lower.includes('geo') || lower.includes('aphg')) return '🌍'
-  if (lower.includes('english') || lower.includes('lit') || lower.includes('writing')) return '📚'
-  if (lower.includes('language') || lower.includes('spanish') || lower.includes('french') || lower.includes('latin')) return '🗣️'
-  if (lower.includes('art') || lower.includes('music')) return '🎨'
-  if (lower.includes('computer') || lower.includes('code') || lower.includes('program')) return '💻'
-  return '📁'
+function getFolderIcon(_name: string) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+    </svg>
+  )
 }
 
 export function DashboardSidebar({ folders, folderSetCounts, activeFolder, onSelectFolder, onAddFolder }: Props) {
@@ -104,7 +100,7 @@ export function DashboardSidebar({ folders, folderSetCounts, activeFolder, onSel
               }`}
             >
               <span className="flex items-center gap-2">
-                <span className="text-sm">{getFolderIcon(folder)}</span>
+                <span className="flex items-center">{getFolderIcon(folder)}</span>
                 <span className="truncate max-w-[100px]">{folder}</span>
               </span>
               {(folderSetCounts[folder] ?? 0) > 0 && (
