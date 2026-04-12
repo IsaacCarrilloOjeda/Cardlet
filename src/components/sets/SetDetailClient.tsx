@@ -7,19 +7,25 @@ import { updateStudySetAction } from '@/lib/actions'
 import { CardList } from './CardList'
 import { AIGenerateModal } from './AIGenerateModal'
 import { CSVImportModal } from './CSVImportModal'
+import { PdfImportModal } from './PdfImportModal'
+import { PracticeExamModal } from './PracticeExamModal'
 import { SubjectInput } from '@/components/ui/SubjectInput'
 import type { Card, StudySet } from '@/types'
 
 interface Props {
   set: StudySet
   cards: Card[]
+  isOwner?: boolean
+  isGuest?: boolean
 }
 
-export function SetDetailClient({ set, cards }: Props) {
+export function SetDetailClient({ set, cards, isOwner = true, isGuest = false }: Props) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [showAIModal, setShowAIModal] = useState(false)
   const [showCSVModal, setShowCSVModal] = useState(false)
+  const [showPdfModal, setShowPdfModal] = useState(false)
+  const [showExamModal, setShowExamModal] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isPublic, setIsPublic] = useState(set.is_public)
   const formRef = useRef<HTMLFormElement>(null)
@@ -40,7 +46,7 @@ export function SetDetailClient({ set, cards }: Props) {
     <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Set header */}
       <div className="mb-8 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6">
-        {isEditing ? (
+        {isEditing && isOwner ? (
           <form ref={formRef} onSubmit={handleSave} className="flex flex-col gap-3">
             <input
               name="title"
@@ -78,6 +84,21 @@ export function SetDetailClient({ set, cards }: Props) {
           </form>
         ) : (
           <>
+            {/* Guest banner */}
+            {isGuest && (
+              <div className="mb-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-3 flex items-center justify-between gap-4">
+                <p className="text-sm text-[var(--foreground)]">
+                  Sign in to study, track progress, and copy this set.
+                </p>
+                <Link
+                  href="/login"
+                  className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-white hover:bg-[var(--accent-hover)] transition-colors"
+                >
+                  Sign in free
+                </Link>
+              </div>
+            )}
+
             <div className="flex items-start justify-between gap-4 mb-2">
               <div>
                 <h1 className="text-2xl font-bold">{set.title}</h1>
@@ -85,48 +106,80 @@ export function SetDetailClient({ set, cards }: Props) {
                   <span className="inline-block mt-1 rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-xs text-[var(--accent)]">{set.subject}</span>
                 )}
               </div>
-              <button onClick={() => setIsEditing(true)} className="shrink-0 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">Edit</button>
+              {isOwner && (
+                <button onClick={() => setIsEditing(true)} className="shrink-0 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">Edit</button>
+              )}
             </div>
             {set.description && <p className="text-sm text-[var(--muted)] mb-4">{set.description}</p>}
             <div className="mb-4 flex items-center gap-3">
               <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${set.is_public ? 'bg-green-500/10 text-green-500' : 'bg-slate-500/10 text-slate-500'}`}>
                 {set.is_public ? 'Public' : 'Private'}
               </span>
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-              >
-                Edit set
-              </button>
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                >
+                  Edit set
+                </button>
+              )}
             </div>
 
             {/* Action buttons */}
             <div className="flex flex-wrap gap-2 mt-4">
-              <Link
-                href={`/study/${set.id}`}
-                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
-              >
-                ▶ Start Study
-              </Link>
-              <Link
-                href={`/quiz/${set.id}`}
-                className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-              >
-                Quiz Mode
-              </Link>
-              <button
-                onClick={() => setShowAIModal(true)}
-                className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-              >
-                ✨ Generate with AI
-              </button>
-              <button
-                onClick={() => setShowCSVModal(true)}
-                className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
-              >
-                📋 Import CSV
-              </button>
+              {isGuest ? (
+                <Link
+                  href="/login"
+                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
+                >
+                  ▶ Sign in to Study
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href={`/study/${set.id}`}
+                    className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
+                  >
+                    ▶ Start Study
+                  </Link>
+                  <Link
+                    href={`/quiz/${set.id}`}
+                    className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                  >
+                    Quiz Mode
+                  </Link>
+                </>
+              )}
+              {isOwner && (
+                <>
+                  <button
+                    onClick={() => setShowAIModal(true)}
+                    className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                  >
+                    ✨ Generate with AI
+                  </button>
+                  <button
+                    onClick={() => setShowCSVModal(true)}
+                    className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                  >
+                    📋 Import CSV
+                  </button>
+                  <button
+                    onClick={() => setShowPdfModal(true)}
+                    className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                  >
+                    📄 Import PDF
+                  </button>
+                  <button
+                    onClick={() => setShowExamModal(true)}
+                    disabled={cards.length < 3}
+                    className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-40"
+                  >
+                    📝 Practice Exam
+                  </button>
+                </>
+              )}
             </div>
           </>
         )}
@@ -141,6 +194,14 @@ export function SetDetailClient({ set, cards }: Props) {
 
       {showCSVModal && (
         <CSVImportModal setId={set.id} onClose={() => setShowCSVModal(false)} />
+      )}
+
+      {showPdfModal && (
+        <PdfImportModal setId={set.id} onClose={() => setShowPdfModal(false)} />
+      )}
+
+      {showExamModal && (
+        <PracticeExamModal setId={set.id} onClose={() => setShowExamModal(false)} />
       )}
     </div>
   )

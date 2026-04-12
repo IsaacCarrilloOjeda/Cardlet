@@ -118,6 +118,29 @@ export async function bulkInsertCardsAction(
   revalidatePath(`/sets/${setId}`)
 }
 
+export async function updateCardImproveAction(
+  cardId: string,
+  setId: string,
+  front: string,
+  back: string,
+): Promise<void> {
+  await getAuthUser()
+  const supabase = await createClient()
+  await supabase.from('cards').update({ front, back }).eq('id', cardId)
+  revalidatePath(`/sets/${setId}`)
+}
+
+export async function setCardImageAction(
+  cardId: string,
+  setId: string,
+  imageUrl: string,
+): Promise<void> {
+  await getAuthUser()
+  const supabase = await createClient()
+  await supabase.from('cards').update({ image_url: imageUrl }).eq('id', cardId)
+  revalidatePath(`/sets/${setId}`)
+}
+
 // ─── Progress ─────────────────────────────────────────────────────────────────
 
 export async function updateCardProgressAction(
@@ -176,7 +199,11 @@ export async function updateProfileAction(formData: FormData): Promise<void> {
   revalidatePath('/profile')
 }
 
-export async function saveQuizResultAction(correct: number, total: number): Promise<void> {
+export async function saveQuizResultAction(
+  correct: number,
+  total: number,
+  pointsEarned: number = 0,
+): Promise<void> {
   const user = await getAuthUser()
   const supabase = await createClient()
   const { error } = await supabase.rpc('increment_quiz_stats', {
@@ -186,8 +213,72 @@ export async function saveQuizResultAction(correct: number, total: number): Prom
   })
   if (error) console.error('saveQuizResult failed:', error)
 
+  if (pointsEarned > 0) {
+    // XP grows 2× faster than leaderboard points so levels feel rewarding.
+    const { error: pointsErr } = await supabase.rpc('add_points_and_xp', {
+      uid: user.id,
+      p_points: pointsEarned,
+      p_xp: pointsEarned * 2,
+    })
+    if (pointsErr) console.error('add_points_and_xp failed:', pointsErr)
+  }
+
   // Bump streak — quizzes count as study activity for the day.
   bumpStreak(user.id).catch((err) => console.error('bumpStreak failed:', err))
+}
+
+export async function addPointsAction(points: number): Promise<void> {
+  if (points <= 0) return
+  const user = await getAuthUser()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('add_points_and_xp', {
+    uid: user.id,
+    p_points: points,
+    p_xp: points * 2,
+  })
+  if (error) console.error('addPoints failed:', error)
+}
+
+// ─── User Materials Upload (non-admin) ────────────────────────────────────────
+
+export async function uploadUserMaterialAction(
+  title: string,
+  subject: string | null,
+  text: string,
+): Promise<{ id: string }> {
+  const user = await getAuthUser()
+  const admin = createAdminClient()
+
+  // Save the transcribed text as a .txt file in the materials bucket.
+  const uniqueName = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.txt`
+  const blob = new Blob([text], { type: 'text/plain' })
+
+  const { error: uploadError } = await admin.storage
+    .from('materials')
+    .upload(uniqueName, blob, { contentType: 'text/plain', upsert: false })
+  if (uploadError) throw uploadError
+
+  const { data: { publicUrl } } = admin.storage.from('materials').getPublicUrl(uniqueName)
+
+  // Use admin client to bypass RLS for the insert (we already verified user)
+  const { data: row, error } = await admin
+    .from('study_materials')
+    .insert({
+      title,
+      subject,
+      description: null,
+      file_url: publicUrl,
+      file_name: uniqueName,
+      file_size: blob.size,
+      is_public: false,
+      user_id: user.id,
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+
+  revalidatePath('/explore')
+  return { id: row.id as string }
 }
 
 // ─── Explore ──────────────────────────────────────────────────────────────────

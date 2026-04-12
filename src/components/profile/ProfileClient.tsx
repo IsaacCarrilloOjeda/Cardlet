@@ -69,7 +69,7 @@ export function ProfileClient({ profile, stats, email }: Props) {
       <h1 className="mb-6 text-2xl font-bold">Profile</h1>
 
       {/* Stats */}
-      <div className="mb-8 grid grid-cols-3 gap-4">
+      <div className="mb-4 grid grid-cols-3 gap-4">
         <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-center">
           <p className="text-3xl font-bold text-[var(--accent)]">{profile.streak}</p>
           <p className="text-xs text-[var(--muted)] mt-1">Day Streak 🔥</p>
@@ -83,6 +83,34 @@ export function ProfileClient({ profile, stats, email }: Props) {
           <p className="text-xs text-[var(--muted)] mt-1">Cards Created</p>
         </div>
       </div>
+
+      {/* XP / Level */}
+      {(() => {
+        const xp = profile.xp ?? 0
+        const points = profile.points_earned ?? 0
+        const level = Math.floor(Math.sqrt(xp / 100)) + 1
+        const xpForCurrent = (level - 1) ** 2 * 100
+        const xpForNext = level ** 2 * 100
+        const progress = Math.min(100, Math.round(((xp - xpForCurrent) / (xpForNext - xpForCurrent)) * 100))
+        const badge = level >= 20 ? '👑' : level >= 10 ? '💎' : level >= 5 ? '⭐' : '🌱'
+        return (
+          <div className="mb-8 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{badge}</span>
+                <div>
+                  <p className="text-sm font-semibold">Level {level}</p>
+                  <p className="text-xs text-[var(--muted)]">{points.toLocaleString()} points · {xp.toLocaleString()} XP</p>
+                </div>
+              </div>
+              <p className="text-xs text-[var(--muted)]">{xpForNext - xp} XP to next</p>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--background)]">
+              <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Edit form */}
       <form ref={formRef} onSubmit={handleSave} className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 flex flex-col gap-5">

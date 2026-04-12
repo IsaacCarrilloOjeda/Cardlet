@@ -7,6 +7,7 @@ import { QuizMultipleChoice } from './QuizMultipleChoice'
 import { QuizWritten } from './QuizWritten'
 import { QuizMatch } from './QuizMatch'
 import { QuizTutorPanel } from './QuizTutorPanel'
+import { QuizReviewPanel, type WrongCardLog } from './QuizReviewPanel'
 import { CompletionScreen } from '@/components/study/CompletionScreen'
 import { BarProgress } from '@/components/layout/BarProgress'
 import { useQuizSettings } from '@/hooks/useQuizSettings'
@@ -60,7 +61,9 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
   const [cards, setCards] = useState<Card[]>(initialCards)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [stats, setStats] = useState<QuizStats>({ again: 0, hard: 0, good: 0, easy: 0, perfect: 0 })
+  const [pointsTotal, setPointsTotal] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
+  const [wrongCards, setWrongCards] = useState<WrongCardLog[]>([])
   const [showTutor, setShowTutor] = useState(false)
   const [tutorHistories, setTutorHistories] = useState<Map<string, TutorMessage[]>>(new Map())
   const hasSubmittedRef = useRef(false)
@@ -101,19 +104,26 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
     if (!isComplete || hasSubmittedRef.current || quizType === 'match') return
     hasSubmittedRef.current = true
     const correct = stats.perfect + stats.easy + stats.good
-    saveQuizResultAction(correct, cards.length).catch(console.error)
-  }, [isComplete, quizType, stats, cards.length])
+    saveQuizResultAction(correct, cards.length, pointsTotal).catch(console.error)
+  }, [isComplete, quizType, stats, cards.length, pointsTotal])
 
   function handleTutorHistoryChange(cardId: string, msgs: TutorMessage[]) {
     setTutorHistories((prev) => new Map(prev).set(cardId, msgs))
   }
 
-  function handleResult(correct: boolean) {
+  function handleResult(correct: boolean, points: number = 0, userAnswer?: string) {
     setStats((prev) => ({
       ...prev,
       perfect: prev.perfect + (correct ? 1 : 0),
       again: prev.again + (correct ? 0 : 1),
     }))
+    if (points > 0) setPointsTotal((p) => p + points)
+    if (!correct) {
+      const c = cards[currentIndex]
+      if (c) {
+        setWrongCards((prev) => [...prev, { id: c.id, front: c.front, back: c.back, userAnswer }])
+      }
+    }
     if (currentIndex + 1 >= cards.length) {
       setIsComplete(true)
     } else {
@@ -122,8 +132,15 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
     }
   }
 
-  function handleMatchComplete(score: number, total: number) {
+  function handleMatchComplete(score: number, total: number, wrongCardIds: string[] = []) {
     setStats({ again: total - score, hard: 0, good: 0, easy: 0, perfect: score })
+    if (wrongCardIds.length > 0) {
+      const wrongs: WrongCardLog[] = wrongCardIds
+        .map((id) => cards.find((c) => c.id === id))
+        .filter((c): c is Card => Boolean(c))
+        .map((c) => ({ id: c.id, front: c.front, back: c.back }))
+      setWrongCards(wrongs)
+    }
     setIsComplete(true)
     saveQuizResultAction(score, total).catch(console.error)
   }
@@ -131,7 +148,9 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
   function restart(newCards?: Card[]) {
     setCurrentIndex(0)
     setStats({ again: 0, hard: 0, good: 0, easy: 0, perfect: 0 })
+    setPointsTotal(0)
     setIsComplete(false)
+    setWrongCards([])
     setShowTutor(false)
     setTutorHistories(new Map())
     hasSubmittedRef.current = false
@@ -203,6 +222,7 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
         <CompletionScreen setId={setId} stats={stats} total={cards.length} onStudyAgain={restart} />
+        <QuizReviewPanel wrongCards={wrongCards} />
       </div>
     )
   }
@@ -330,6 +350,7 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
             >
               Play Again
             </button>
+            <QuizReviewPanel wrongCards={wrongCards} />
           </div>
         )}
 

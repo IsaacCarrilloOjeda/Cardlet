@@ -8,14 +8,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [{ key: 'ngrok-skip-browser-warning', value: '1' }],
-      },
-    ]
-  },
 };
 
 export default nextConfig;

@@ -10,6 +10,7 @@ interface Props {
   materials: StudyMaterial[]
   query: string
   mode: 'sets' | 'materials'
+  isLoggedIn?: boolean
 }
 
 function formatDate(iso: string) {
@@ -22,11 +23,15 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function PublicSetCard({ set }: { set: StudySet }) {
+function PublicSetCard({ set, isLoggedIn }: { set: StudySet; isLoggedIn: boolean }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   function handleCopy() {
+    if (!isLoggedIn) {
+      router.push('/login')
+      return
+    }
     startTransition(async () => {
       const result = await copySetAction(set.id)
       router.push(`/sets/${result.id}`)
@@ -56,7 +61,7 @@ function PublicSetCard({ set }: { set: StudySet }) {
         disabled={isPending}
         className="rounded-lg border border-[var(--card-border)] py-2 text-sm font-medium transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-60"
       >
-        {isPending ? 'Copying…' : '+ Copy to My Sets'}
+        {isPending ? 'Copying…' : isLoggedIn ? '+ Copy to My Sets' : '+ Sign in to Copy'}
       </button>
     </div>
   )
@@ -96,7 +101,7 @@ function MaterialCard({ material }: { material: StudyMaterial }) {
   )
 }
 
-export function ExploreClient({ sets, materials, query, mode }: Props) {
+export function ExploreClient({ sets, materials, query, mode, isLoggedIn = false }: Props) {
   const router = useRouter()
 
   function handleSearch(e: React.FormEvent<HTMLFormElement>) {
@@ -183,7 +188,7 @@ export function ExploreClient({ sets, materials, query, mode }: Props) {
           )}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {mode === 'sets'
-              ? sets.map((set) => <PublicSetCard key={set.id} set={set} />)
+              ? sets.map((set) => <PublicSetCard key={set.id} set={set} isLoggedIn={isLoggedIn} />)
               : materials.map((m) => <MaterialCard key={m.id} material={m} />)
             }
           </div>

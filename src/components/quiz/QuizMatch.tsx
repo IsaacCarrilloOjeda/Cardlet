@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Card } from '@/types'
 
 function shuffle<T>(arr: T[]): T[] {
@@ -14,7 +14,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 interface Props {
   cards: Card[]
-  onComplete: (score: number, total: number) => void
+  onComplete: (score: number, total: number, wrongCardIds?: string[]) => void
   onSkip?: () => void
   onExplain?: () => void
 }
@@ -41,6 +41,7 @@ export function QuizMatch({ cards, onComplete, onSkip, onExplain }: Props) {
   const [flash, setFlash] = useState<{ id: string; correct: boolean } | null>(null)
   const [score, setScore] = useState(0)
   const [total, setTotal] = useState(0)
+  const wrongIdsRef = useRef<Set<string>>(new Set())
 
   function handleFront(id: string) {
     if (matchedFronts.find((f) => f.id === id)?.matched) return
@@ -56,13 +57,17 @@ export function QuizMatch({ cards, onComplete, onSkip, onExplain }: Props) {
     setFlash({ id, correct: isCorrect })
     setTotal((t) => t + 1)
 
+    if (!isCorrect && selectedFront) {
+      wrongIdsRef.current.add(selectedFront)
+    }
+
     setTimeout(() => {
       setFlash(null)
       if (isCorrect) {
         setScore((s) => {
           const next = s + 1
           if (next >= subset.length) {
-            setTimeout(() => onComplete(next, subset.length), 400)
+            setTimeout(() => onComplete(next, subset.length, Array.from(wrongIdsRef.current)), 400)
           }
           return next
         })

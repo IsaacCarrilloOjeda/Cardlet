@@ -5,7 +5,7 @@ const COOKIE = 'admin_auth'
 const VALUE = 'ss_admin_1'
 
 function hash(pw: string): string {
-  return createHash('sha256').update(pw + 'smartstack_salt').digest('hex')
+  return createHash('sha256').update(pw + 'cardlet_admin_salt').digest('hex')
 }
 
 export async function isAdminAuthenticated(): Promise<boolean> {
@@ -14,7 +14,9 @@ export async function isAdminAuthenticated(): Promise<boolean> {
 }
 
 export function verifyAdminPassword(input: string): boolean {
-  return hash(input) === hash(process.env.ADMIN_PASSWORD ?? '123123')
+  const configured = process.env.ADMIN_PASSWORD
+  if (!configured) return false
+  return hash(input) === hash(configured)
 }
 
 export { COOKIE as ADMIN_COOKIE_NAME, VALUE as ADMIN_COOKIE_VALUE }

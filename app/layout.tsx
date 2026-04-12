@@ -19,12 +19,68 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cardlet",
-  description: "Study smarter with AI-powered flashcards",
+  metadataBase: new URL("https://cardlet.app"),
+  title: {
+    default: "Cardlet — AI-Powered Flashcard Study App",
+    template: "%s | Cardlet",
+  },
+  description:
+    "Create flashcards in seconds with AI. Study smarter with spaced repetition, practice tests, written quizzes, and an AI tutor. Free forever.",
+  keywords: [
+    "flashcards",
+    "study app",
+    "spaced repetition",
+    "AI flashcards",
+    "quizlet alternative",
+    "study tools",
+    "free flashcard maker",
+    "practice tests",
+    "AI tutor",
+  ],
+  authors: [{ name: "Isaac Carrillo Ojeda", url: "https://cardlet.app" }],
+  creator: "Isaac Carrillo Ojeda",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://cardlet.app",
+    siteName: "Cardlet",
+    title: "Cardlet — AI-Powered Flashcard Study App",
+    description:
+      "Create flashcards in seconds with AI. Study smarter with spaced repetition, practice tests, written quizzes, and an AI tutor. Free forever.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Cardlet — AI-Powered Flashcard Study App",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cardlet — AI-Powered Flashcard Study App",
+    description:
+      "Create flashcards in seconds with AI. Study smarter with spaced repetition and an AI tutor. Free forever.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   appleWebApp: {
     capable: true,
     title: "Cardlet",
     statusBarStyle: "black-translucent",
+  },
+  verification: {
+    google: "iVoSm7Wy-Ipf-cWhaflGengYmhOgH1Jwf4IGFE59HIs",
   },
 };
 

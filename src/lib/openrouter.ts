@@ -1,10 +1,15 @@
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 const MODEL = process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini'
+const VISION_MODEL = process.env.OPENROUTER_VISION_MODEL ?? MODEL
 const MAX_TOKENS = Number(process.env.OPENROUTER_MAX_TOKENS ?? 1024)
+
+export type TextPart = { type: 'text'; text: string }
+export type ImagePart = { type: 'image_url'; image_url: { url: string } }
+export type ContentPart = TextPart | ImagePart
 
 export interface Message {
   role: 'system' | 'user' | 'assistant'
-  content: string
+  content: string | ContentPart[]
 }
 
 function getHeaders() {
@@ -16,16 +21,21 @@ function getHeaders() {
   }
 }
 
+function hasImages(messages: Message[]) {
+  return messages.some((m) => Array.isArray(m.content) && m.content.some((p) => p.type === 'image_url'))
+}
+
 /**
  * Non-streaming completion. Returns the assistant message content as a string.
  * Pass jsonMode: true to request JSON output.
+ * Automatically swaps to vision model when any message contains an image part.
  */
 export async function chatComplete(
   messages: Message[],
-  opts: { jsonMode?: boolean; maxTokens?: number } = {}
+  opts: { jsonMode?: boolean; maxTokens?: number; model?: string } = {}
 ): Promise<string> {
   const body: Record<string, unknown> = {
-    model: MODEL,
+    model: opts.model ?? (hasImages(messages) ? VISION_MODEL : MODEL),
     messages,
     max_tokens: opts.maxTokens ?? MAX_TOKENS,
     temperature: 0.7,
@@ -54,12 +64,15 @@ export async function chatComplete(
  * The stream emits OpenRouter SSE chunks (data: {...}\n\n).
  * Pipe this directly into a Response for SSE endpoints.
  */
-export async function chatStream(messages: Message[]): Promise<ReadableStream<Uint8Array>> {
+export async function chatStream(
+  messages: Message[],
+  opts: { model?: string } = {}
+): Promise<ReadableStream<Uint8Array>> {
   const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify({
-      model: MODEL,
+      model: opts.model ?? (hasImages(messages) ? VISION_MODEL : MODEL),
       messages,
       stream: true,
       max_tokens: MAX_TOKENS,

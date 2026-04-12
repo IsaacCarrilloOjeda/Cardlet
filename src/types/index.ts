@@ -9,6 +9,24 @@ export interface Profile {
   quiz_correct: number
   quiz_attempts: number
   last_study_date?: string | null
+  points_earned?: number
+  xp?: number
+}
+
+export type GraderDifficulty = 'easy' | 'normal' | 'hard' | 'brutal'
+
+export const DIFFICULTY_MULTIPLIERS: Record<GraderDifficulty, number> = {
+  easy: 0.5,
+  normal: 1.0,
+  hard: 1.5,
+  brutal: 2.0,
+}
+
+export const DIFFICULTY_LABELS: Record<GraderDifficulty, string> = {
+  easy: '🌱 Easy',
+  normal: '⚖️ Normal',
+  hard: '🔥 Hard',
+  brutal: '💀 Brutal',
 }
 
 export interface DailyChallengeCard {
@@ -65,6 +83,7 @@ export interface StudyMaterial {
   file_size: number | null
   is_public: boolean
   created_at: string
+  user_id?: string | null
 }
 
 export type FeedbackStatus = 'new' | 'seen' | 'resolved'

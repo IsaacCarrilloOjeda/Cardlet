@@ -3,11 +3,21 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
 // Credit costs
-export const TUTOR_FULL_COST = 10    // full AI tutor message
-export const TUTOR_HALF_COST = 5     // half-performance tutor message
+export const TUTOR_FULL_COST = 10        // full AI tutor message
+export const TUTOR_HALF_COST = 5         // half-performance tutor message
 export const WRITTEN_GRADING_COST = 1
-export const CARD_GEN_COST = 1       // per card generated
-export const DISTRACTOR_COST = 1     // per multiple-choice card (AI distractors)
+export const CARD_GEN_COST = 1           // per card generated
+export const DISTRACTOR_COST = 1         // per multiple-choice card (AI distractors)
+export const IMAGE_OCR_COST = 3          // photo → text transcription
+export const HINT_COST = 2               // single smart hint in study session
+export const PRACTICE_EXAM_COST = 5      // generate full practice exam
+export const POST_QUIZ_REVIEW_COST = 3   // AI explanation of wrong answers
+export const CARD_IMPROVE_COST = 1       // rewrite a single card
+export const CARD_IMAGE_COST = 4         // generate image for a card
+export const ELI_EXPLAIN_COST = 2        // ELI5/15/25 explanation
+export const AUTO_TAG_COST = 2           // bulk auto-tag sets
+export const AUTO_SPLIT_COST = 1         // bulk paste auto-splitter
+export const EQUATION_SOLVE_COST = 3     // step-by-step equation solver
 
 interface Credits {
   credits: number

@@ -7,7 +7,7 @@ import { useCredits, DISTRACTOR_COST } from '@/components/layout/CreditsContext'
 interface Props {
   card: Card
   allCards: Card[]
-  onResult: (correct: boolean) => void
+  onResult: (correct: boolean, points?: number, userAnswer?: string) => void
   onSkip?: () => void
   onExplain?: () => void
   clickToContinue?: boolean
@@ -93,7 +93,7 @@ export function QuizMultipleChoice({ card, allCards, onResult, onSkip, onExplain
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.closest('[data-explain-btn]')) return
-      onResult(correct)
+      onResult(correct, 0, selected)
     }
     window.addEventListener('click', handleClick)
     return () => window.removeEventListener('click', handleClick)
@@ -104,7 +104,7 @@ export function QuizMultipleChoice({ card, allCards, onResult, onSkip, onExplain
     setSelected(option)
     const correct = option === card.back
     if (!clickToContinue) {
-      setTimeout(() => onResult(correct), 1200)
+      setTimeout(() => onResult(correct, 0, option), 1200)
     }
     // else: wait for click (handled by useEffect above)
   }
