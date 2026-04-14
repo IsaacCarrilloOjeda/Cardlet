@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CircleProgress } from "@/components/layout/CircleProgress";
 import { ServiceWorkerRegister } from "@/components/layout/ServiceWorkerRegister";
+import { BootSplash } from "@/components/layout/BootSplash";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -107,6 +108,7 @@ export default function RootLayout({
             <Footer />
             <CircleProgress />
             <ServiceWorkerRegister />
+            <BootSplash />
           </CreditsProvider>
         </ThemeProvider>
       </body>
