@@ -38,7 +38,10 @@ export function Footer() {
       <footer className="border-t border-[var(--card-border)] bg-[var(--background)] py-4 px-4 mt-auto">
         <div className="mx-auto max-w-7xl flex items-center justify-between gap-4 flex-wrap">
           <p className="text-xs text-[var(--muted)]">
-            © {new Date().getFullYear()} Cardlet · AI-powered flashcards
+            © {new Date().getFullYear()} Cardlet · AI-powered flashcards · Built by{' '}
+            <a href="https://kynesystems.com" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">KYNE Systems</a>
+            {' · '}
+            <a href="https://github.com/IsaacCarrilloOjeda/Cardlet" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">GitHub</a>
           </p>
           <div className="flex items-center gap-3">
             <button

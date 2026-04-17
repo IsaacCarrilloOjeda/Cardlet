@@ -743,6 +743,17 @@ interface Props {
   onClose: () => void
 }
 
+const EXERCISES_PER_SESSION = 5
+
+function shuffleAndPick<T>(pool: T[], count: number): T[] {
+  const arr = [...pool]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr.slice(0, count)
+}
+
 export function LessonModal({ lesson, langCode, newAchievements = [], onComplete, onClose }: Props) {
   const [exerciseIdx, setExerciseIdx] = useState(0)
   const [hearts, setHearts] = useState(3)
@@ -755,7 +766,10 @@ export function LessonModal({ lesson, langCode, newAchievements = [], onComplete
   const [finalXp, setFinalXp] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
 
-  const exercises = lesson.exercises
+  const exercises = useMemo(
+    () => shuffleAndPick(lesson.exercises, EXERCISES_PER_SESSION),
+    [lesson],
+  )
   const totalExercises = exercises.length
   const currentExercise = exercises[exerciseIdx]
 

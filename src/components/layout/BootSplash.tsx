@@ -45,7 +45,7 @@ export function BootSplash() {
         await animate(
           scope.current,
           { rotate: 0 },
-          { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
+          { duration: 0.69, ease: [0.22, 1, 0.36, 1] }
         );
         if (cancelled) return;
 

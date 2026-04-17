@@ -50,6 +50,7 @@ function checkAchievements(
   const langsStudied = Object.keys(progress).filter((k) => (progress[k].completedLessons.length ?? 0) > 0)
   const esSp = progress['es']?.completedLessons ?? []
   const frSp = progress['fr']?.completedLessons ?? []
+  const deSp = progress['de']?.completedLessons ?? []
 
   const rules: Record<string, boolean> = {
     first_lesson:  totalLessons >= 1,
@@ -60,6 +61,7 @@ function checkAchievements(
     polyglot:      langsStudied.length >= 2,
     spanish_u1:    ['es-greetings','es-numbers','es-colors'].every((id) => esSp.includes(id)),
     french_u1:     ['fr-greetings','fr-numbers','fr-colors'].every((id) => frSp.includes(id)),
+    german_u1:     ['de-greetings','de-numbers','de-colors'].every((id) => deSp.includes(id)),
   }
 
   for (const ach of ACHIEVEMENTS) {
@@ -457,7 +459,7 @@ export function LanguagePage() {
                     {[
                       { label: 'Languages', value: '8' },
                       { label: 'Learners',  value: '42M+' },
-                      { label: 'Lessons',   value: '12' },
+                      { label: 'Lessons',   value: '22' },
                     ].map((s) => (
                       <div key={s.label} className="text-center">
                         <p className="text-2xl font-black" style={{ color: G.green }}>{s.value}</p>
