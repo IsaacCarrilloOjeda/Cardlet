@@ -221,7 +221,7 @@ export function QuizModeClient({ cards: initialCards, setId, setTitle }: Props) 
   if (isComplete && quizType !== 'match') {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <CompletionScreen setId={setId} stats={stats} total={cards.length} onStudyAgain={restart} />
+        <CompletionScreen setId={setId} stats={stats} total={cards.length} onStudyAgain={restart} setTitle={setTitle} />
         <QuizReviewPanel wrongCards={wrongCards} />
       </div>
     )

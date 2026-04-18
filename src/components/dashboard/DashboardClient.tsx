@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useTransition } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { StudySetCard } from './StudySetCard'
 import { CreateSetModal } from './CreateSetModal'
 import { DashboardSidebar } from './DashboardSidebar'
@@ -42,6 +44,7 @@ function getFolderIcon(_name: string) {
 }
 
 export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, dailyCard = null }: Props) {
+  const router = useRouter()
   const [folders, setFolders] = useState<string[]>([])
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -52,6 +55,13 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
   const [deletingFolder, setDeletingFolder] = useState<string | null>(null)
 
   const [isPending, startTransition] = useTransition()
+
+  const noInteraction = !addingFolder && !renamingFolder && !deletingFolder && !showModal
+  const dashShortcuts = useMemo(() => ({
+    n: () => setShowModal(true),
+    '/': () => router.push('/explore'),
+  }), [router])
+  useKeyboardShortcuts(dashShortcuts, { enabled: noInteraction })
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)

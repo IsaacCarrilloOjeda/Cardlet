@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getStudySet, getCardsBySet } from '@/lib/db'
+import { getStudySet, getCardsBySet, getSetRatings } from '@/lib/db'
 import { SetDetailClient } from '@/components/sets/SetDetailClient'
 
 // Generate per-set metadata for Google (title, description, OG)
@@ -50,7 +50,7 @@ export default async function SetDetailPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [set, cards] = await Promise.all([getStudySet(id), getCardsBySet(id)])
+  const [set, cards, ratings] = await Promise.all([getStudySet(id), getCardsBySet(id), getSetRatings(id)])
 
   if (!set) notFound()
 
@@ -63,5 +63,5 @@ export default async function SetDetailPage({
   const isOwner = !!user && set.user_id === user.id
   const isGuest = !user
 
-  return <SetDetailClient set={set} cards={cards} isOwner={isOwner} isGuest={isGuest} />
+  return <SetDetailClient set={set} cards={cards} isOwner={isOwner} isGuest={isGuest} ratings={ratings} currentUserId={user?.id} />
 }

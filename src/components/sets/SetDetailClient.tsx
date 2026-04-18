@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, useTransition } from 'react'
+import { useState, useRef, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { updateStudySetAction, duplicateStudySetAction } from '@/lib/actions'
 import { CardList } from './CardList'
 import { AIGenerateModal } from './AIGenerateModal'
@@ -10,16 +11,19 @@ import { CSVImportModal } from './CSVImportModal'
 import { PdfImportModal } from './PdfImportModal'
 import { PracticeExamModal } from './PracticeExamModal'
 import { SubjectInput } from '@/components/ui/SubjectInput'
-import type { Card, StudySet } from '@/types'
+import { SetRatings } from './SetRatings'
+import type { Card, StudySet, SetRating } from '@/types'
 
 interface Props {
   set: StudySet
   cards: Card[]
   isOwner?: boolean
   isGuest?: boolean
+  ratings?: SetRating[]
+  currentUserId?: string
 }
 
-export function SetDetailClient({ set, cards, isOwner = true, isGuest = false }: Props) {
+export function SetDetailClient({ set, cards, isOwner = true, isGuest = false, ratings = [], currentUserId }: Props) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [showAIModal, setShowAIModal] = useState(false)
@@ -30,6 +34,14 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false }:
   const [isPending, startTransition] = useTransition()
   const [isPublic, setIsPublic] = useState(set.is_public)
   const formRef = useRef<HTMLFormElement>(null)
+
+  const noModals = !showAIModal && !showCSVModal && !showPdfModal && !showExamModal
+  const shortcuts = useMemo(() => ({
+    s: () => { if (!isGuest) router.push(`/study/${set.id}`) },
+    q: () => { if (!isGuest) router.push(`/quiz/${set.id}`) },
+    e: () => { if (isOwner) setIsEditing(true) },
+  }), [router, set.id, isGuest, isOwner])
+  useKeyboardShortcuts(shortcuts, { enabled: !isEditing && noModals })
 
   async function handleDuplicate() {
     setIsDuplicating(true)
@@ -209,6 +221,11 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false }:
 
       {/* Cards */}
       <CardList cards={cards} setId={set.id} />
+
+      {/* Ratings & Reviews — shown for public sets */}
+      {set.is_public && (
+        <SetRatings ratings={ratings} setId={set.id} currentUserId={currentUserId} />
+      )}
 
       {showAIModal && (
         <AIGenerateModal setId={set.id} onClose={() => setShowAIModal(false)} />

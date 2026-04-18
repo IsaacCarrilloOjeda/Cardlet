@@ -7,7 +7,8 @@ import { updateProfileAction } from '@/lib/actions'
 import { useTheme, ACCENT_COLORS, type AccentKey } from '@/components/layout/ThemeProvider'
 import { BarProgress } from '@/components/layout/BarProgress'
 import { useQuizSettings } from '@/hooks/useQuizSettings'
-import type { Profile } from '@/types'
+import { ActivityHeatmap } from './ActivityHeatmap'
+import type { Profile, StudyActivity } from '@/types'
 
 interface Stats {
   setCount: number
@@ -18,9 +19,10 @@ interface Props {
   profile: Profile
   stats: Stats
   email: string
+  activity: StudyActivity[]
 }
 
-export function ProfileClient({ profile, stats, email }: Props) {
+export function ProfileClient({ profile, stats, email, activity }: Props) {
   const formRef = useRef<HTMLFormElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isPending, startTransition] = useTransition()
@@ -111,6 +113,9 @@ export function ProfileClient({ profile, stats, email }: Props) {
           </div>
         )
       })()}
+
+      {/* Activity Heatmap */}
+      <ActivityHeatmap activity={activity} />
 
       {/* Edit form */}
       <form ref={formRef} onSubmit={handleSave} className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 flex flex-col gap-5">

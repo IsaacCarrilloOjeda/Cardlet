@@ -3,12 +3,21 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+export interface ShortcutEntry {
+  keys: string[]
+  desc: string
+}
+
 interface Props {
   open: boolean
   onClose: () => void
+  shortcuts?: ShortcutEntry[]
+  title?: string
+  subtitle?: string
+  footnote?: string
 }
 
-const SHORTCUTS = [
+export const STUDY_SHORTCUTS: ShortcutEntry[] = [
   { keys: ['Space'], desc: 'Flip card' },
   { keys: ['1'], desc: 'Again (card failed)' },
   { keys: ['2'], desc: 'Hard' },
@@ -27,7 +36,14 @@ function Key({ label }: { label: string }) {
   )
 }
 
-export function ShortcutsModal({ open, onClose }: Props) {
+export function ShortcutsModal({
+  open,
+  onClose,
+  shortcuts = STUDY_SHORTCUTS,
+  title = 'Keyboard Shortcuts',
+  subtitle = 'Study session controls',
+  footnote = 'Confidence keys (1\u20135) only work after flipping',
+}: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -61,8 +77,8 @@ export function ShortcutsModal({ open, onClose }: Props) {
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--card-border)]">
                 <div>
-                  <p className="font-bold text-base">Keyboard Shortcuts</p>
-                  <p className="text-[11px] text-[var(--muted)] mt-0.5">Study session controls</p>
+                  <p className="font-bold text-base">{title}</p>
+                  <p className="text-[11px] text-[var(--muted)] mt-0.5">{subtitle}</p>
                 </div>
                 <button
                   onClick={onClose}
@@ -75,7 +91,7 @@ export function ShortcutsModal({ open, onClose }: Props) {
                 </button>
               </div>
               <ul className="divide-y divide-[var(--card-border)]">
-                {SHORTCUTS.map(({ keys, desc }) => (
+                {shortcuts.map(({ keys, desc }) => (
                   <li key={keys.join('+')} className="flex items-center justify-between px-5 py-3">
                     <span className="text-sm text-[var(--foreground)]">{desc}</span>
                     <div className="flex items-center gap-1">
@@ -85,7 +101,7 @@ export function ShortcutsModal({ open, onClose }: Props) {
                 ))}
               </ul>
               <div className="px-5 py-3 border-t border-[var(--card-border)]">
-                <p className="text-[11px] text-[var(--muted)] text-center">Confidence keys (1–5) only work after flipping</p>
+                <p className="text-[11px] text-[var(--muted)] text-center">{footnote}</p>
               </div>
             </div>
           </motion.div>

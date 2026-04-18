@@ -2,7 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
+import Link from 'next/link'
 import { copySetAction } from '@/lib/actions'
+import { StarDisplay } from '@/components/sets/SetRatings'
 import type { StudyMaterial, StudySet } from '@/types'
 
 interface Props {
@@ -41,7 +43,7 @@ function PublicSetCard({ set, isLoggedIn }: { set: StudySet; isLoggedIn: boolean
   return (
     <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5 flex flex-col gap-3">
       <div>
-        <h3 className="font-semibold truncate">{set.title}</h3>
+        <Link href={`/sets/${set.id}`} className="font-semibold truncate hover:text-[var(--accent)] transition-colors block">{set.title}</Link>
         {set.subject && (
           <span className="inline-block mt-1 rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-xs text-[var(--accent)]">
             {set.subject}
@@ -55,6 +57,15 @@ function PublicSetCard({ set, isLoggedIn }: { set: StudySet; isLoggedIn: boolean
         <span>{set.card_count ?? 0} cards</span>
         <span>·</span>
         <span>{formatDate(set.created_at)}</span>
+        {set.avg_rating != null && set.rating_count != null && set.rating_count > 0 && (
+          <>
+            <span>·</span>
+            <span className="flex items-center gap-1">
+              <StarDisplay value={set.avg_rating} size={11} />
+              <span>{set.avg_rating.toFixed(1)} ({set.rating_count})</span>
+            </span>
+          </>
+        )}
       </div>
       <button
         onClick={handleCopy}

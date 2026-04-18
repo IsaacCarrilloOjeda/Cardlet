@@ -46,6 +46,8 @@ export interface StudySet {
   is_public: boolean
   created_at: string
   card_count?: number
+  avg_rating?: number
+  rating_count?: number
 }
 
 export interface Card {
@@ -95,6 +97,22 @@ export interface Feedback {
   message: string
   status: FeedbackStatus
   created_at: string
+}
+
+export interface StudyActivity {
+  activity_date: string
+  cards_studied: number
+}
+
+export interface SetRating {
+  id: string
+  user_id: string
+  set_id: string
+  stars: number
+  comment: string | null
+  created_at: string
+  username?: string | null
+  avatar_url?: string | null
 }
 
 export interface AdminStats {

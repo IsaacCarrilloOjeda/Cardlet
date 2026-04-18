@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { AdminStats, Card, CardWithProgress, DailyChallengeCard, Feedback, FeedbackStatus, Profile, StudyMaterial, StudySet, UserCardProgress } from '@/types'
+import type { AdminStats, Card, CardWithProgress, DailyChallengeCard, Feedback, FeedbackStatus, Profile, SetRating, StudyActivity, StudyMaterial, StudySet, UserCardProgress } from '@/types'
 
 // ─── Study Sets ───────────────────────────────────────────────────────────────
 
@@ -317,6 +317,92 @@ export async function getRecentPublicSets(): Promise<StudySet[]> {
     card_count: (row.cards as unknown as { count: number }[])[0]?.count ?? 0,
     cards: undefined,
   })) as StudySet[]
+}
+
+// ─── Study Activity ──────────────────────────────────────────────────────────
+
+export async function getStudyActivity(userId: string): Promise<StudyActivity[]> {
+  const supabase = await createClient()
+  const oneYearAgo = new Date()
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+  const { data, error } = await supabase
+    .from('study_activity')
+    .select('activity_date, cards_studied')
+    .eq('user_id', userId)
+    .gte('activity_date', oneYearAgo.toISOString().split('T')[0])
+    .order('activity_date', { ascending: true })
+  if (error) return []
+  return (data ?? []) as StudyActivity[]
+}
+
+export async function bumpStudyActivity(userId: string, delta = 1): Promise<void> {
+  const supabase = await createClient()
+  await supabase.rpc('bump_study_activity', { uid: userId, delta })
+}
+
+// ─── Set Ratings ─────────────────────────────────────────────────────────────
+
+export async function getSetRatings(setId: string): Promise<SetRating[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('set_ratings')
+    .select(`
+      id, user_id, set_id, stars, comment, created_at,
+      profiles:user_id ( username, avatar_url )
+    `)
+    .eq('set_id', setId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+  if (error) return []
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const profile = row.profiles as { username: string | null; avatar_url: string | null } | null
+    return {
+      id: row.id as string,
+      user_id: row.user_id as string,
+      set_id: row.set_id as string,
+      stars: row.stars as number,
+      comment: row.comment as string | null,
+      created_at: row.created_at as string,
+      username: profile?.username ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+    }
+  })
+}
+
+export async function upsertSetRating(
+  userId: string,
+  setId: string,
+  stars: number,
+  comment: string | null,
+): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase.from('set_ratings').upsert(
+    { user_id: userId, set_id: setId, stars, comment },
+    { onConflict: 'user_id,set_id' },
+  )
+  if (error) throw error
+}
+
+export async function getRatingSummaries(setIds: string[]): Promise<Map<string, { avg: number; count: number }>> {
+  if (setIds.length === 0) return new Map()
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('set_ratings')
+    .select('set_id, stars')
+    .in('set_id', setIds)
+  if (error || !data) return new Map()
+  const map = new Map<string, { sum: number; count: number }>()
+  for (const row of data) {
+    const entry = map.get(row.set_id) ?? { sum: 0, count: 0 }
+    entry.sum += row.stars
+    entry.count += 1
+    map.set(row.set_id, entry)
+  }
+  const result = new Map<string, { avg: number; count: number }>()
+  for (const [id, { sum, count }] of map) {
+    result.set(id, { avg: sum / count, count })
+  }
+  return result
 }
 
 // ─── Folder DB Sync ───────────────────────────────────────────────────────────

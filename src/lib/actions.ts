@@ -15,6 +15,7 @@ import {
   upsertCardProgress,
   upsertProfile,
   bumpStreak,
+  bumpStudyActivity,
   copySetToUser,
   renameFolderInDB,
   deleteSetsInFolder,
@@ -27,6 +28,7 @@ import {
   createAdminStudySet,
   bulkInsertCardsAdmin,
   setUserRole,
+  upsertSetRating,
 } from '@/lib/db'
 import { computeSM2 } from '@/lib/sm2'
 import { chatComplete } from '@/lib/openrouter'
@@ -219,6 +221,8 @@ export async function updateCardProgressAction(
 
   // Bump streak — same-day calls are no-ops in the RPC, so this is cheap.
   bumpStreak(user.id).catch((err) => console.error('bumpStreak failed:', err))
+  // Track study activity for heatmap
+  bumpStudyActivity(user.id).catch((err) => console.error('bumpStudyActivity failed:', err))
   // No revalidation — called fire-and-forget during study session
 }
 
@@ -267,6 +271,8 @@ export async function saveQuizResultAction(
 
   // Bump streak — quizzes count as study activity for the day.
   bumpStreak(user.id).catch((err) => console.error('bumpStreak failed:', err))
+  // Track study activity for heatmap
+  bumpStudyActivity(user.id, correct).catch((err) => console.error('bumpStudyActivity failed:', err))
 }
 
 export async function addPointsAction(points: number): Promise<void> {
@@ -279,6 +285,18 @@ export async function addPointsAction(points: number): Promise<void> {
     p_xp: points * 2,
   })
   if (error) console.error('addPoints failed:', error)
+}
+
+// ─── Set Ratings ─────────────────────────────────────────────────────────────
+
+export async function rateSetAction(
+  setId: string,
+  stars: number,
+  comment: string | null,
+): Promise<void> {
+  const user = await getAuthUser()
+  await upsertSetRating(user.id, setId, stars, comment)
+  revalidatePath(`/sets/${setId}`)
 }
 
 // ─── User Materials Upload (non-admin) ────────────────────────────────────────

@@ -11,7 +11,7 @@ import { CompletionScreen } from './CompletionScreen'
 import { AITutorChat } from './AITutorChat'
 import { PomodoroTimer } from './PomodoroTimer'
 import { ShortcutsModal } from './ShortcutsModal'
-import { useCredits, HINT_COST } from '@/components/layout/CreditsContext'
+import { useCredits, HINT_COST, ELI_EXPLAIN_COST } from '@/components/layout/CreditsContext'
 import { useStarredCards } from '@/hooks/useStarredCards'
 import type { CardWithProgress } from '@/types'
 
@@ -56,6 +56,12 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [hint, setHint] = useState<{ text: string; level: number } | null>(null)
   const [hintLoading, setHintLoading] = useState(false)
+  const [explanation, setExplanation] = useState<string | null>(null)
+  const [isExplaining, setIsExplaining] = useState(false)
+  const [cramTimerSecs, setCramTimerSecs] = useState(15)
+  const [cramTimeLeft, setCramTimeLeft] = useState(15)
+  const [cramCorrect, setCramCorrect] = useState(0)
+  const [cramTotal, setCramTotal] = useState(0)
   const { consumeCredits } = useCredits()
   const { starredIds } = useStarredCards(setId)
 
@@ -91,6 +97,14 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
 
     setStats((prev) => ({ ...prev, [rating]: prev[rating] + 1 }))
     setHint(null)
+
+    // Track cram accuracy
+    if (cramMode) {
+      setCramTotal((t) => t + 1)
+      if (rating === 'good' || rating === 'easy' || rating === 'perfect') {
+        setCramCorrect((c) => c + 1)
+      }
+    }
 
     // Open AI tutor for completely failed cards (skipped in cram mode)
     if (rating === 'again' && !cramMode) {
@@ -134,8 +148,25 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
     }
   }
 
-  // Reset hint when card changes
-  useEffect(() => { setHint(null) }, [currentIndex])
+  // Reset hint and explanation when card changes
+  useEffect(() => { setHint(null); setExplanation(null) }, [currentIndex])
+
+  async function handleExplain() {
+    if (!currentCard || isExplaining) return
+    if (!consumeCredits(ELI_EXPLAIN_COST)) return
+    setIsExplaining(true)
+    try {
+      const res = await fetch('/api/ai/eli-explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ front: currentCard.front, back: currentCard.back, level: 15 }),
+      })
+      const data = await res.json()
+      if (res.ok && data.explanation) setExplanation(data.explanation)
+    } finally {
+      setIsExplaining(false)
+    }
+  }
 
   // Focus mode — hide the sticky header
   useEffect(() => {
@@ -146,6 +177,30 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
     }
     return () => { document.body.classList.remove('focus-mode') }
   }, [focusMode])
+
+  // Cram timer — countdown per card, auto-advance on timeout
+  useEffect(() => {
+    if (!cramMode || isComplete || isFlipped) return
+    setCramTimeLeft(cramTimerSecs)
+    const interval = setInterval(() => {
+      setCramTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Timeout: auto-mark as wrong and advance
+          setStats((s) => ({ ...s, again: s.again + 1 }))
+          setCramTotal((t) => t + 1)
+          if (currentIndex + 1 >= deck.length) {
+            setIsComplete(true)
+          } else {
+            setCurrentIndex((i) => i + 1)
+            setIsFlipped(false)
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [cramMode, currentIndex, isComplete, cramTimerSecs, isFlipped, deck.length])
 
   const handleSkip = useCallback(() => {
     if (currentIndex + 1 >= deck.length) {
@@ -218,6 +273,8 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
     setIsComplete(false)
     setShowTutor(false)
     setStats({ again: 0, hard: 0, good: 0, easy: 0, perfect: 0 })
+    setCramCorrect(0)
+    setCramTotal(0)
   }
 
   if (cards.length === 0) {
@@ -271,6 +328,18 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
             Cram
           </span>
         </button>
+        {cramMode && (
+          <select
+            value={cramTimerSecs}
+            onChange={(e) => setCramTimerSecs(Number(e.target.value))}
+            className="rounded-lg border border-orange-500/40 bg-orange-500/10 text-orange-300 px-1.5 py-1 text-[11px] font-medium focus:outline-none cursor-pointer"
+            title="Cram timer per card"
+          >
+            <option value={10}>10s</option>
+            <option value={15}>15s</option>
+            <option value={30}>30s</option>
+          </select>
+        )}
         <button
           onClick={() => { setReverseMode((v) => !v); setIsFlipped(false) }}
           title={reverseMode ? 'Reverse mode on — back side is the prompt' : 'Swap front and back'}
@@ -326,11 +395,33 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
           total={deck.length}
           onStudyAgain={handleStudyAgain}
           backHref={backHref}
+          cramStats={cramMode ? { correct: cramCorrect, total: cramTotal, timerSecs: cramTimerSecs } : undefined}
+          setTitle={setTitle}
         />
       ) : (
         <div className="flex flex-col gap-6">
           {/* Progress */}
           <ProgressBar current={currentIndex} total={deck.length} />
+
+          {/* Cram HUD */}
+          {cramMode && (
+            <div className="flex items-center justify-between rounded-xl border border-orange-500/30 bg-orange-500/5 px-4 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className={`font-mono text-lg font-bold ${cramTimeLeft <= 5 ? 'text-red-400 animate-pulse' : 'text-orange-400'}`}>
+                  {cramTimeLeft}s
+                </span>
+                <span className="text-[11px] text-[var(--muted)]">per card</span>
+              </div>
+              <div className="text-xs text-[var(--muted)]">
+                <span className="font-semibold text-orange-400">{cramCorrect}</span>/{cramTotal} correct
+                {cramTotal > 0 && (
+                  <span className="ml-1.5 text-[var(--muted)]">
+                    ({Math.round((cramCorrect / cramTotal) * 100)}%)
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Card */}
           <CardFlip
@@ -338,6 +429,9 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
             back={reverseMode ? currentCard.front : currentCard.back}
             isFlipped={isFlipped}
             onFlip={() => setIsFlipped(!isFlipped)}
+            onExplain={handleExplain}
+            isExplaining={isExplaining}
+            explanation={explanation}
           />
 
           {/* Confidence */}
