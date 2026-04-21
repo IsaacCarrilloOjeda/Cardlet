@@ -8,8 +8,10 @@ import { updateStudySetAction, duplicateStudySetAction } from '@/lib/actions'
 import { CardList } from './CardList'
 import { AIGenerateModal } from './AIGenerateModal'
 import { CSVImportModal } from './CSVImportModal'
+import { QuizletImportModal } from './QuizletImportModal'
 import { PdfImportModal } from './PdfImportModal'
 import { PracticeExamModal } from './PracticeExamModal'
+import { PrintPdfModal } from './PrintPdfModal'
 import { SubjectInput } from '@/components/ui/SubjectInput'
 import { SetRatings } from './SetRatings'
 import type { Card, StudySet, SetRating } from '@/types'
@@ -28,14 +30,16 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false, r
   const [isEditing, setIsEditing] = useState(false)
   const [showAIModal, setShowAIModal] = useState(false)
   const [showCSVModal, setShowCSVModal] = useState(false)
+  const [showQuizletModal, setShowQuizletModal] = useState(false)
   const [showPdfModal, setShowPdfModal] = useState(false)
   const [showExamModal, setShowExamModal] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
   const [isDuplicating, setIsDuplicating] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isPublic, setIsPublic] = useState(set.is_public)
   const formRef = useRef<HTMLFormElement>(null)
 
-  const noModals = !showAIModal && !showCSVModal && !showPdfModal && !showExamModal
+  const noModals = !showAIModal && !showCSVModal && !showQuizletModal && !showPdfModal && !showExamModal && !showPrintModal
   const shortcuts = useMemo(() => ({
     s: () => { if (!isGuest) router.push(`/study/${set.id}`) },
     q: () => { if (!isGuest) router.push(`/quiz/${set.id}`) },
@@ -234,11 +238,37 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false, r
                     📋 Import CSV
                   </button>
                   <button
+                    onClick={() => setShowQuizletModal(true)}
+                    className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5"
+                    title="Import an exported Quizlet set"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      <line x1="8" y1="9" x2="16" y2="9" />
+                      <line x1="8" y1="13" x2="14" y2="13" />
+                    </svg>
+                    Import Quizlet
+                  </button>
+                  <button
                     onClick={() => setShowPdfModal(true)}
                     className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
                   >
                     📄 Import PDF
                   </button>
+                  {cards.length > 0 && (
+                    <button
+                      onClick={() => setShowPrintModal(true)}
+                      className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5"
+                      title="Export as printable PDF"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="6 9 6 2 18 2 18 9" />
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                        <rect x="6" y="14" width="12" height="8" />
+                      </svg>
+                      Export PDF
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowExamModal(true)}
                     disabled={cards.length < 3}
@@ -280,8 +310,20 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false, r
         <CSVImportModal setId={set.id} onClose={() => setShowCSVModal(false)} />
       )}
 
+      {showQuizletModal && (
+        <QuizletImportModal setId={set.id} onClose={() => setShowQuizletModal(false)} />
+      )}
+
       {showPdfModal && (
         <PdfImportModal setId={set.id} onClose={() => setShowPdfModal(false)} />
+      )}
+
+      {showPrintModal && (
+        <PrintPdfModal
+          setTitle={set.title}
+          cards={cards}
+          onClose={() => setShowPrintModal(false)}
+        />
       )}
 
       {showExamModal && (

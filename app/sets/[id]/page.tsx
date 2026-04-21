@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getStudySet, getCardsBySet, getSetRatings } from '@/lib/db'
 import { SetDetailClient } from '@/components/sets/SetDetailClient'
+import { OfflineCacheWriter } from '@/components/offline/OfflineCacheWriter'
 
 // Generate per-set metadata for Google (title, description, OG)
 export async function generateMetadata({
@@ -63,5 +64,10 @@ export default async function SetDetailPage({
   const isOwner = !!user && set.user_id === user.id
   const isGuest = !user
 
-  return <SetDetailClient set={set} cards={cards} isOwner={isOwner} isGuest={isGuest} ratings={ratings} currentUserId={user?.id} />
+  return (
+    <>
+      <OfflineCacheWriter set={set} cards={cards} />
+      <SetDetailClient set={set} cards={cards} isOwner={isOwner} isGuest={isGuest} ratings={ratings} currentUserId={user?.id} />
+    </>
+  )
 }

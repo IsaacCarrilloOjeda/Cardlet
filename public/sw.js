@@ -1,8 +1,8 @@
 // Cardlet minimal service worker — offline shell + runtime caching for static assets.
 // Keep this file tiny. Bump CACHE_VERSION when you change anything cache-worthy.
 
-const CACHE_VERSION = 'cardlet-v1'
-const OFFLINE_URLS = ['/', '/login', '/offline', '/icon.svg']
+const CACHE_VERSION = 'cardlet-v2'
+const OFFLINE_URLS = ['/', '/login', '/offline', '/icon.svg', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) return
 
-  // HTML navigations: network-first, fall back to cache.
+  // HTML navigations: network-first, fall back to cache, then to /offline.
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
@@ -43,7 +43,9 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy))
           return res
         })
-        .catch(() => caches.match(req).then((c) => c || caches.match('/')))
+        .catch(() =>
+          caches.match(req).then((c) => c || caches.match('/offline') || caches.match('/'))
+        )
     )
     return
   }

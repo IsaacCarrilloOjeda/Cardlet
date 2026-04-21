@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getStudySet, getDueCards } from '@/lib/db'
 import { StudySessionClient } from '@/components/study/StudySessionClient'
+import { OfflineCacheWriter } from '@/components/offline/OfflineCacheWriter'
 
 export default async function StudyPage({
   params,
@@ -22,10 +23,13 @@ export default async function StudyPage({
   if (!set) notFound()
 
   return (
-    <StudySessionClient
-      cards={cards}
-      setId={setId}
-      setTitle={set.title}
-    />
+    <>
+      <OfflineCacheWriter set={set} cards={cards} />
+      <StudySessionClient
+        cards={cards}
+        setId={setId}
+        setTitle={set.title}
+      />
+    </>
   )
 }
