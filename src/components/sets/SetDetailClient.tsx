@@ -152,12 +152,29 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false, r
             {/* Action buttons */}
             <div className="flex flex-wrap gap-2 mt-4">
               {isGuest ? (
-                <Link
-                  href="/login"
-                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
-                >
-                  ▶ Sign in to Study
-                </Link>
+                set.is_public ? (
+                  <>
+                    <Link
+                      href={`/study/${set.id}/guest`}
+                      className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
+                    >
+                      ▶ Study as guest
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                    >
+                      Sign in to track progress
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
+                  >
+                    ▶ Sign in to Study
+                  </Link>
+                )
               ) : (
                 <>
                   <Link

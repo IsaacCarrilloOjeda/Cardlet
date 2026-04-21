@@ -186,6 +186,18 @@ export async function getDueCards(userId: string, setId: string): Promise<CardWi
   return withProgress
 }
 
+// All cards in a public set, no user filtering — used by guest study mode.
+export async function getPublicSetCards(setId: string): Promise<CardWithProgress[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('cards')
+    .select('*')
+    .eq('set_id', setId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []).map((c) => ({ ...(c as Card), progress: null })) as CardWithProgress[]
+}
+
 export async function upsertCardProgress(data: UserCardProgress): Promise<void> {
   const supabase = await createClient()
   const { error } = await supabase.from('user_card_progress').upsert(data, {

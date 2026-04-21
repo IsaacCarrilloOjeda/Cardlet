@@ -20,6 +20,7 @@ interface Props {
   setId: string
   setTitle: string
   backHref?: string
+  guestMode?: boolean
 }
 
 interface SessionStats {
@@ -39,7 +40,7 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a
 }
 
-export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) {
+export function StudySessionClient({ cards, setId, setTitle, backHref, guestMode = false }: Props) {
   const back = backHref ?? `/sets/${setId}`
   const [deck, setDeck] = useState(cards)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -49,7 +50,8 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
   const [, startTransition] = useTransition()
   const [showTutor, setShowTutor] = useState(false)
   const [shuffleAnim, setShuffleAnim] = useState('')
-  const [cramMode, setCramMode] = useState(false)
+  // Guests always run in cram mode — no SM-2 writes, no tutor credits
+  const [cramMode, setCramMode] = useState(guestMode)
   const [reverseMode, setReverseMode] = useState(false)
   const [starredOnly, setStarredOnly] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
@@ -106,14 +108,14 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
       }
     }
 
-    // Open AI tutor for completely failed cards (skipped in cram mode)
-    if (rating === 'again' && !cramMode) {
+    // Open AI tutor for completely failed cards (skipped in cram mode and guest mode)
+    if (rating === 'again' && !cramMode && !guestMode) {
       setShowTutor(true)
       return
     }
 
-    // Fire-and-forget SM-2 update — disabled in cram mode
-    if (!cramMode) {
+    // Fire-and-forget SM-2 update — disabled in cram mode and guest mode
+    if (!cramMode && !guestMode) {
       const quality = qualityFromConfidence(rating)
       startTransition(async () => {
         await updateCardProgressAction(currentCard.id, quality)
@@ -127,7 +129,7 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
       setCurrentIndex(currentIndex + 1)
       setIsFlipped(false)
     }
-  }, [currentCard, currentIndex, deck.length, cramMode])
+  }, [currentCard, currentIndex, deck.length, cramMode, guestMode])
 
   async function handleHint() {
     if (!currentCard || hintLoading) return
@@ -290,6 +292,25 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
+      {guestMode && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-2.5">
+          <div className="flex items-center gap-2 text-sm text-[var(--foreground)]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--accent)]" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>Guest mode — sign in to track progress</span>
+          </div>
+          <Link
+            href="/login"
+            className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-white hover:bg-[var(--accent-hover)] transition-colors"
+          >
+            Sign in
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
@@ -311,24 +332,26 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
           </svg>
           {starredOnly ? `Starred (${deck.length})` : 'Starred'}
         </button>
-        <button
-          onClick={() => setCramMode((v) => !v)}
-          title={cramMode ? 'Cram mode on — SM-2 paused' : 'Toggle cram mode'}
-          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-            cramMode
-              ? 'bg-orange-500 text-white border-orange-500'
-              : 'border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)]'
-          }`}
-        >
-          <span className="flex items-center gap-1.5">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3C10 6 6 9 6 14C6 18 9 22 12 22C15 22 18 18 18 14C18 9 15 6 14 5C14 8 13 10 13 10C12.5 7 12.5 5 12 3Z"/>
-              <path d="M12 13C10.5 15 10 17.5 11 20C11.5 21.5 12.5 21.5 13 20C14 17.5 13.5 15 12 13Z"/>
-            </svg>
-            Cram
-          </span>
-        </button>
-        {cramMode && (
+        {!guestMode && (
+          <button
+            onClick={() => setCramMode((v) => !v)}
+            title={cramMode ? 'Cram mode on — SM-2 paused' : 'Toggle cram mode'}
+            className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              cramMode
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)]'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3C10 6 6 9 6 14C6 18 9 22 12 22C15 22 18 18 18 14C18 9 15 6 14 5C14 8 13 10 13 10C12.5 7 12.5 5 12 3Z"/>
+                <path d="M12 13C10.5 15 10 17.5 11 20C11.5 21.5 12.5 21.5 13 20C14 17.5 13.5 15 12 13Z"/>
+              </svg>
+              Cram
+            </span>
+          </button>
+        )}
+        {cramMode && !guestMode && (
           <select
             value={cramTimerSecs}
             onChange={(e) => setCramTimerSecs(Number(e.target.value))}
@@ -397,6 +420,7 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
           backHref={backHref}
           cramStats={cramMode ? { correct: cramCorrect, total: cramTotal, timerSecs: cramTimerSecs } : undefined}
           setTitle={setTitle}
+          guestMode={guestMode}
         />
       ) : (
         <div className="flex flex-col gap-6">
@@ -480,7 +504,7 @@ export function StudySessionClient({ cards, setId, setTitle, backHref }: Props) 
         </div>
       )}
 
-      {showTutor && currentCard && (
+      {showTutor && currentCard && !guestMode && (
         <AITutorChat
           cardFront={currentCard.front}
           cardBack={currentCard.back}

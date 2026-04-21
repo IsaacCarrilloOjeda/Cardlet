@@ -28,10 +28,12 @@ interface Props {
   setTitle?: string
   username?: string
   level?: number
+  guestMode?: boolean
 }
 
-export function CompletionScreen({ setId, stats, total, onStudyAgain, backHref, cramStats, setTitle, username, level }: Props) {
-  const back = backHref ?? `/sets/${setId}`
+export function CompletionScreen({ setId, stats, total, onStudyAgain, backHref, cramStats, setTitle, username, level, guestMode = false }: Props) {
+  // Guests always return to the set page — they have no profile/stats view
+  const back = guestMode ? `/sets/${setId}` : (backHref ?? `/sets/${setId}`)
   const pct = total === 0 ? 0 : Math.round(((stats.good + stats.easy + stats.perfect) / total) * 100)
   const [isSharing, setIsSharing] = useState(false)
   const [shareMsg, setShareMsg] = useState<string | null>(null)
@@ -165,9 +167,18 @@ export function CompletionScreen({ setId, stats, total, onStudyAgain, backHref, 
           href={back}
           className="flex-1 rounded-xl bg-[var(--accent)] py-3 text-center text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
         >
-          {backHref ? 'Done' : 'Back to Set'}
+          {guestMode || backHref ? 'Done' : 'Back to Set'}
         </Link>
       </div>
+
+      {guestMode && (
+        <Link
+          href="/login"
+          className="w-full rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/10 py-2.5 text-center text-sm font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+        >
+          Sign in free to track your progress
+        </Link>
+      )}
 
       {/* Share */}
       <button
