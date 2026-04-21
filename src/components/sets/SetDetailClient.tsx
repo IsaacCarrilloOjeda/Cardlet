@@ -174,6 +174,34 @@ export function SetDetailClient({ set, cards, isOwner = true, isGuest = false, r
                   </Link>
                 </>
               )}
+              {set.is_public && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/sets/${set.id}`
+                    const title = set.title
+                    const body = set.description
+                      ? `${set.description}\n\n${url}`
+                      : `Study set on Cardlet: ${url}`
+                    const shareUrl =
+                      `https://classroom.google.com/share` +
+                      `?url=${encodeURIComponent(url)}` +
+                      `&title=${encodeURIComponent(title)}` +
+                      `&body=${encodeURIComponent(body)}`
+                    window.open(shareUrl, '_blank', 'noopener,noreferrer,width=600,height=700')
+                  }}
+                  title="Share to Google Classroom"
+                  className="rounded-lg border border-[var(--card-border)] px-4 py-2 text-sm font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors flex items-center gap-1.5"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    <circle cx="12" cy="11" r="2.5" />
+                    <path d="M8.5 17c.5-1.8 2-3 3.5-3s3 1.2 3.5 3" />
+                  </svg>
+                  Share to Classroom
+                </button>
+              )}
               {isOwner && (
                 <>
                   <button
