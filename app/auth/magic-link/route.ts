@@ -15,8 +15,14 @@ export async function POST(request: NextRequest) {
   })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(error.message)}`, request.url),
+      { status: 303 }
+    )
   }
 
-  return NextResponse.json({ message: 'Magic link sent' })
+  return NextResponse.redirect(
+    new URL(`/auth/check-email?email=${encodeURIComponent(email)}`, request.url),
+    { status: 303 }
+  )
 }

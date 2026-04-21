@@ -1,10 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/')
+
+  const { error } = await searchParams
 
   return (
     <div className="min-h-[calc(100vh-56px)] flex">
@@ -64,7 +70,53 @@ export default async function LoginPage() {
           </div>
 
           <h1 className="text-2xl font-black mb-1">Log in to Cardlet</h1>
-          <p className="text-[var(--muted)] text-sm mb-8">Welcome back! Please sign in to continue.</p>
+          <p className="text-[var(--muted)] text-sm mb-6">Welcome back! Please sign in to continue.</p>
+
+          {error && (
+            <div
+              role="alert"
+              className="mb-5 rounded-xl border p-3 text-sm"
+              style={{
+                borderColor: 'color-mix(in srgb, var(--danger) 40%, transparent)',
+                background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
+                color: 'var(--danger)',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {/* School-computer notice */}
+          <div
+            className="mb-5 rounded-xl border p-3 flex gap-3 items-start"
+            style={{
+              borderColor: 'var(--card-border)',
+              background: 'var(--surface)',
+            }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mt-0.5 shrink-0"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <line x1="12" y1="11" x2="12" y2="17" />
+              <line x1="12" y1="7.5" x2="12" y2="7.5" />
+            </svg>
+            <div className="text-xs leading-relaxed">
+              <p className="font-semibold text-[var(--foreground)] mb-0.5">On a school computer?</p>
+              <p className="text-[var(--muted)]">
+                Google sign-in may be blocked by your school. If it fails, use <span className="font-semibold text-[var(--foreground)]">Send email</span> below instead.
+              </p>
+            </div>
+          </div>
 
           {/* Google Sign In */}
           <form action="/auth/signin" method="post">
@@ -102,8 +154,11 @@ export default async function LoginPage() {
               type="submit"
               className="w-full h-12 rounded-xl bg-[var(--accent)] text-white font-semibold text-sm hover:bg-[var(--accent-hover)] transition-colors"
             >
-              Send magic link
+              Send email
             </button>
+            <p className="text-xs text-[var(--muted)] text-center">
+              We&apos;ll send a one-click sign-in link — no password needed.
+            </p>
           </form>
 
           <p className="mt-6 text-xs text-center text-[var(--muted)]">
