@@ -1,6 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
+function friendlyError(raw: string | undefined): string | null {
+  if (!raw) return null
+  const msg = raw.toLowerCase()
+  if (msg.includes('sending')) {
+    return "We couldn't send the sign-in email right now. Please try again in a moment."
+  }
+  if (msg.includes('rate') || msg.includes('security purposes') || msg.includes('too many')) {
+    return 'Too many tries. Please wait a minute before trying again.'
+  }
+  if (msg.includes('invalid') && msg.includes('email')) {
+    return "That email address doesn't look right. Double-check and try again."
+  }
+  if (msg.includes('not allowed') || msg.includes('not authorized')) {
+    return 'That email address is not allowed to sign in. Try a different address.'
+  }
+  return 'Something went wrong. Please try again.'
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -10,7 +28,8 @@ export default async function LoginPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/')
 
-  const { error } = await searchParams
+  const { error: rawError } = await searchParams
+  const error = friendlyError(rawError)
 
   return (
     <div className="min-h-[calc(100vh-56px)] flex">
