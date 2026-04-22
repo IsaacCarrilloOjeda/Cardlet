@@ -162,42 +162,72 @@ export function setAudioMode(v: boolean) {
 }
 
 // ─── Mistakes (weak words) ─────────────────────────────────────────────────────
-type MistakeMap = Record<string, Record<string, number>>
+// Keyed by target-language word; stores its English translation + running count.
+// Legacy shape (Record<langId, Record<word, number>>) is migrated on first read.
+export interface MistakeEntry { target: string; english: string; count: number }
+type MistakeRecord = { english: string; count: number }
+type MistakeMap = Record<string, Record<string, MistakeRecord>>
 
 function loadMistakes(): MistakeMap {
   if (typeof window === 'undefined') return {}
-  try { return JSON.parse(localStorage.getItem(MISTAKES_KEY) ?? '{}') as MistakeMap } catch { return {} }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MISTAKES_KEY) ?? '{}') as unknown
+    if (!parsed || typeof parsed !== 'object') return {}
+    const out: MistakeMap = {}
+    for (const [lang, inner] of Object.entries(parsed as Record<string, unknown>)) {
+      if (!inner || typeof inner !== 'object') continue
+      const byLang: Record<string, MistakeRecord> = {}
+      for (const [target, val] of Object.entries(inner as Record<string, unknown>)) {
+        if (typeof val === 'number') byLang[target] = { english: '', count: val }
+        else if (val && typeof val === 'object' && 'count' in val) {
+          const v = val as { english?: unknown; count?: unknown }
+          byLang[target] = {
+            english: typeof v.english === 'string' ? v.english : '',
+            count: typeof v.count === 'number' ? v.count : 0,
+          }
+        }
+      }
+      out[lang] = byLang
+    }
+    return out
+  } catch { return {} }
 }
 function saveMistakes(m: MistakeMap) {
   if (typeof window === 'undefined') return
   localStorage.setItem(MISTAKES_KEY, JSON.stringify(m))
 }
 
-export function logMistake(langId: string, word: string) {
-  if (!word) return
+export function logMistake(langId: string, target: string, english: string) {
+  if (!target) return
   const m = loadMistakes()
   const byLang = m[langId] ?? {}
-  byLang[word] = (byLang[word] ?? 0) + 1
+  const existing = byLang[target]
+  byLang[target] = {
+    english: english || existing?.english || '',
+    count: (existing?.count ?? 0) + 1,
+  }
   m[langId] = byLang
   saveMistakes(m)
   emit()
 }
 
-export function clearMistake(langId: string, word: string) {
+export function clearMistake(langId: string, target: string) {
   const m = loadMistakes()
   const byLang = m[langId]
-  if (!byLang || !byLang[word]) return
-  byLang[word] = Math.max(0, byLang[word] - 1)
-  if (byLang[word] === 0) delete byLang[word]
+  if (!byLang || !byLang[target]) return
+  const next = Math.max(0, byLang[target].count - 1)
+  if (next === 0) delete byLang[target]
+  else byLang[target] = { ...byLang[target], count: next }
   saveMistakes(m)
   emit()
 }
 
-export function getMistakes(langId: string): Array<{ word: string; count: number }> {
+export function getMistakes(langId: string): MistakeEntry[] {
   const m = loadMistakes()
   const byLang = m[langId] ?? {}
   return Object.entries(byLang)
-    .map(([word, count]) => ({ word, count }))
+    .filter(([, v]) => v.english) // only entries with a known English translation are reviewable
+    .map(([target, v]) => ({ target, english: v.english, count: v.count }))
     .sort((a, b) => b.count - a.count)
 }
 

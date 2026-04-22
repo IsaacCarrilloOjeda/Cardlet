@@ -10,6 +10,7 @@ import {
   MAX_HEARTS, HEART_REFILL_COST,
   getCurrentHearts, loseHeart, refillAllHearts,
   bumpStreak, addDailyXp, logMistake, clearMistake,
+  markCheckpointPassed,
 } from './storage'
 import { useCredits } from '@/components/layout/CreditsContext'
 
@@ -799,6 +800,56 @@ function OutOfHeartsScreen({
   )
 }
 
+// ─── checkpoint failed ─────────────────────────────────────────────────────────
+function CheckpointFailedScreen({
+  correctCount, total, passThreshold, hearts, onRetry, onQuit,
+}: {
+  correctCount: number; total: number; passThreshold: number
+  hearts: number; onRetry: () => void; onQuit: () => void
+}) {
+  const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0
+  const needed = Math.ceil(passThreshold * total)
+  const canRetry = hearts >= 1
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center gap-5 py-2">
+      <div className="w-24 h-24 rounded-full flex items-center justify-center"
+        style={{ background: `${G.yellow}30`, border: `4px solid ${G.yellow}` }}>
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke={G.yellow} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
+      <div className="text-center">
+        <h2 className="text-2xl font-black text-[var(--foreground)]">Not quite!</h2>
+        <p className="text-[var(--muted)] mt-1 text-sm">
+          You got <span className="font-bold" style={{ color: G.redDark }}>{correctCount}/{total}</span> ({pct}%).
+          You need at least {needed}/{total} to pass.
+        </p>
+      </div>
+      <button onClick={onRetry} disabled={!canRetry}
+        className="w-full py-4 rounded-2xl font-black text-lg text-white transition-all"
+        style={{
+          background: canRetry ? 'var(--accent)' : 'var(--card-border)',
+          boxShadow: canRetry ? '0 4px 0 var(--accent-hover)' : 'none',
+          cursor: canRetry ? 'pointer' : 'not-allowed',
+          color: canRetry ? 'white' : 'var(--muted)',
+        }}>
+        Try again — costs 1 heart
+      </button>
+      {!canRetry && (
+        <p className="text-xs font-semibold" style={{ color: G.red }}>
+          You need at least 1 heart to retry.
+        </p>
+      )}
+      <button onClick={onQuit}
+        className="w-full py-3 rounded-2xl font-bold text-base border-2 transition-colors"
+        style={{ borderColor: 'var(--card-border)', color: 'var(--foreground)' }}>
+        Quit checkpoint
+      </button>
+    </motion.div>
+  )
+}
+
 // ─── main modal ────────────────────────────────────────────────────────────────
 interface Props {
   lesson: Lesson
@@ -809,11 +860,20 @@ interface Props {
   exercisePool?: Exercise[]
   /** Mistake tracking key — if set, correctAnswer of wrong answers is logged to `cardlet-lang-mistakes[trackMistakesFor]`. */
   trackMistakesFor?: string
+  /** 'lesson' (default) scores by hearts lost; 'checkpoint' scores by correct-answer rate. */
+  mode?: 'lesson' | 'checkpoint'
+  /** Override the per-session question count. Default 5 for lessons, 10 for checkpoints. */
+  sessionSize?: number
+  /** Fraction of correct answers needed to pass a checkpoint (0–1). Default 0.8. */
+  passThreshold?: number
+  /** Unit id whose checkpoint is marked passed on success. Required for checkpoint mode. */
+  checkpointUnitId?: string
   onComplete: (xpEarned: number, perfect: boolean) => void
   onClose: () => void
 }
 
-const EXERCISES_PER_SESSION = 5
+const DEFAULT_SESSION = 5
+const DEFAULT_CHECKPOINT_SESSION = 10
 
 function shuffleAndPick<T>(pool: T[], count: number): T[] {
   const arr = [...pool]
@@ -831,21 +891,47 @@ function hasAudio(ex: Exercise): boolean {
   return /^\s*["'"'«「]/.test(ex.question)
 }
 
-function correctAnswerOf(ex: Exercise): string {
-  if (ex.type === 'translate') return ex.answer
-  if (ex.type === 'multipleChoice') return ex.options[ex.correctIndex]
-  return ''
+/**
+ * Extract the {target-language word, english translation} pair an exercise is testing,
+ * so the mistake tracker can rebuild reviewable MC questions later.
+ * Returns null for matchPairs (the "which of 4 pairs failed" mapping isn't available here)
+ * or when the direction can't be determined.
+ */
+function pairFromExercise(ex: Exercise): { target: string; english: string } | null {
+  if (ex.type === 'translate') {
+    return ex.promptLang === 'target'
+      ? { target: ex.prompt, english: ex.answer }
+      : { target: ex.answer, english: ex.prompt }
+  }
+  if (ex.type === 'multipleChoice') {
+    const quote = ex.question.match(/["'"'«「]([^"'"'»」]+)["'"'»」]/)?.[1]?.trim()
+    const answer = ex.options[ex.correctIndex]
+    // "means", "mean?", "is English", "is an informal way" → quote is target, answer is english
+    const targetInQuote = /means?\b|\bmean\?|is\s+english|informal way/i.test(ex.question)
+    if (quote) {
+      return targetInQuote
+        ? { target: quote, english: answer }
+        : { target: answer, english: quote }
+    }
+    // No quote: assume "How do you say X?"-style already handled above; otherwise skip.
+    return null
+  }
+  return null
 }
 
 export function LessonModal({
   lesson, langCode, newAchievements = [], audioOnly = false,
-  exercisePool, trackMistakesFor, onComplete, onClose,
+  exercisePool, trackMistakesFor,
+  mode = 'lesson', sessionSize, passThreshold = 0.8, checkpointUnitId,
+  onComplete, onClose,
 }: Props) {
   const credits = useCredits()
+  const isCheckpoint = mode === 'checkpoint'
   const [exerciseIdx, setExerciseIdx] = useState(0)
   const [hearts, setHearts] = useState<number>(() => getCurrentHearts().hearts)
   const [hintsUsed, setHintsUsed] = useState(0)
-  const [phase, setPhase] = useState<'lesson' | 'complete' | 'failed'>(
+  const [correctCount, setCorrectCount] = useState(0)
+  const [phase, setPhase] = useState<'lesson' | 'complete' | 'failed' | 'checkpoint-failed'>(
     () => (getCurrentHearts().hearts > 0 ? 'lesson' : 'failed')
   )
   const [feedbackVisible, setFeedbackVisible] = useState(false)
@@ -859,34 +945,57 @@ export function LessonModal({
     const pool = exercisePool ?? lesson.exercises
     const filtered = audioOnly ? pool.filter(hasAudio) : pool
     const usable = filtered.length > 0 ? filtered : pool
-    return shuffleAndPick(usable, EXERCISES_PER_SESSION)
-  }, [lesson, audioOnly, exercisePool])
+    const size = sessionSize ?? (isCheckpoint ? DEFAULT_CHECKPOINT_SESSION : DEFAULT_SESSION)
+    return shuffleAndPick(usable, size)
+  }, [lesson, audioOnly, exercisePool, isCheckpoint, sessionSize])
   const totalExercises = exercises.length
   const currentExercise = exercises[exerciseIdx]
 
   function advance(wasCorrect: boolean) {
+    if (wasCorrect) setCorrectCount((c) => c + 1)
     if (!wasCorrect) {
-      const newHearts = loseHeart()
-      setHearts(newHearts)
+      if (!isCheckpoint) {
+        const newHearts = loseHeart()
+        setHearts(newHearts)
+        if (newHearts <= 0) {
+          setPhase('failed')
+          return
+        }
+      }
       setPerfect(false)
       if (trackMistakesFor) {
-        const word = correctAnswerOf(currentExercise)
-        if (word) logMistake(trackMistakesFor, word)
-      }
-      if (newHearts <= 0) {
-        setPhase('failed')
-        return
+        const pair = pairFromExercise(currentExercise)
+        if (pair) logMistake(trackMistakesFor, pair.target, pair.english)
       }
     } else if (trackMistakesFor && currentExercise.type !== 'matchPairs') {
       // Review mode: a correct answer decrements the mistake count
-      const word = correctAnswerOf(currentExercise)
-      if (word) clearMistake(trackMistakesFor, word)
+      const pair = pairFromExercise(currentExercise)
+      if (pair) clearMistake(trackMistakesFor, pair.target)
     }
     setFeedbackCorrect(wasCorrect)
     setFeedbackVisible(true)
   }
 
   function finalizeXp() {
+    if (isCheckpoint) {
+      // Include the match-pair advance that bypasses `advance(...)` — matchPairs count as correct.
+      const finalCorrect = correctCount
+      const passed = totalExercises > 0 && finalCorrect / totalExercises >= passThreshold
+      if (passed) {
+        if (checkpointUnitId) markCheckpointPassed(checkpointUnitId)
+        const xp = Math.round(lesson.xpReward * (0.7 + (finalCorrect / totalExercises) * 0.3))
+        const clampedXp = Math.max(5, xp)
+        setFinalXp(clampedXp)
+        setShowConfetti(true)
+        bumpStreak()
+        addDailyXp(clampedXp)
+        setPhase('complete')
+      } else {
+        setFinalXp(0)
+        setPhase('checkpoint-failed')
+      }
+      return
+    }
     const xp = Math.round(lesson.xpReward * (0.5 + (hearts / 10)) - hintsUsed * 3)
     const clampedXp = Math.max(5, xp)
     setFinalXp(clampedXp)
@@ -894,6 +1003,18 @@ export function LessonModal({
     bumpStreak()
     addDailyXp(clampedXp)
     setPhase('complete')
+  }
+
+  function handleCheckpointRetry() {
+    const newHearts = loseHeart()
+    setHearts(newHearts)
+    if (newHearts <= 0) { setPhase('failed'); return }
+    setExerciseIdx(0)
+    setExerciseKey((k) => k + 1)
+    setCorrectCount(0)
+    setPerfect(true)
+    setFeedbackVisible(false)
+    setPhase('lesson')
   }
 
   const handleContinue = useCallback(() => {
@@ -908,6 +1029,7 @@ export function LessonModal({
   }, [exerciseIdx, totalExercises, hearts, hintsUsed, perfect, lesson.xpReward])
 
   function handleMatchComplete() {
+    setCorrectCount((c) => c + 1)
     if (exerciseIdx + 1 >= totalExercises) {
       finalizeXp()
     } else {
@@ -988,6 +1110,15 @@ export function LessonModal({
                 <OutOfHeartsScreen
                   credits={credits.credits}
                   onRefill={handleRefill}
+                  onQuit={onClose}
+                />
+              ) : phase === 'checkpoint-failed' ? (
+                <CheckpointFailedScreen
+                  correctCount={correctCount}
+                  total={totalExercises}
+                  passThreshold={passThreshold}
+                  hearts={hearts}
+                  onRetry={handleCheckpointRetry}
                   onQuit={onClose}
                 />
               ) : (

@@ -6,7 +6,10 @@ import { LANGUAGES, ACHIEVEMENTS, type LanguageMeta, type Lesson, type Achieveme
 import { LessonModal } from './LessonModal'
 import { HeartsBar } from './HeartsBar'
 import { StreakGoalBar } from './StreakGoalBar'
-import { getAudioMode, setAudioMode, subscribeLangStorage } from './storage'
+import { DailyLangChallenge, type DailyPick } from './DailyLangChallenge'
+import { getAudioMode, setAudioMode, subscribeLangStorage, markDailyChallengeDone, hasPassedCheckpoint } from './storage'
+import type { Unit } from './lessonData'
+import { ReviewWeakWords } from './ReviewWeakWords'
 
 // ─── colours ───────────────────────────────────────────────────────────────────
 const G = {
@@ -254,6 +257,62 @@ function LessonNode({ lesson, nodeState, unitColor, unitDarkColor, onPress }: {
 // snake offsets
 const SNAKE = [0, 60, 96, 60, 0, -60, -96, -60]
 
+// ─── checkpoint node ───────────────────────────────────────────────────────────
+function CheckpointTrophyIcon({ size = 30, color = 'white' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 21h8M12 17v4M17 3H7L5 7c0 3.87 3.13 7 7 7s7-3.13 7-7l-2-4z" />
+      <path d="M5 7H3M19 7h2" />
+    </svg>
+  )
+}
+
+function CheckpointNode({ unit, state, onPress }: {
+  unit: Unit; state: NodeState; onPress: () => void
+}) {
+  const isLocked   = state === 'locked'
+  const isComplete = state === 'completed'
+  const isActive   = state === 'active'
+  const bg   = isComplete ? 'var(--accent)' : isLocked ? '#E5E5E5' : unit.color
+  const dark = isComplete ? 'var(--accent-hover)' : isLocked ? '#AFAFAF' : unit.darkColor
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {isActive && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl px-3 py-1 text-xs font-black text-white"
+          style={{ background: unit.color }}>
+          CHECKPOINT
+        </motion.div>
+      )}
+      <motion.button
+        whileTap={!isLocked ? { scale: 0.94, y: 3 } : {}}
+        onClick={!isLocked ? onPress : undefined}
+        onKeyDown={(e) => { if (!isLocked && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onPress() } }}
+        tabIndex={isLocked ? -1 : 0}
+        className="relative flex items-center justify-center rounded-2xl transition-all focus:outline-none focus-visible:ring-2"
+        style={{
+          width: 96, height: 72, background: bg,
+          boxShadow: isLocked ? 'none' : `0 6px 0 ${dark}`,
+          cursor: isLocked ? 'not-allowed' : 'pointer',
+        }}
+        animate={isActive ? {
+          boxShadow: [`0 6px 0 ${dark}`, `0 6px 18px ${unit.color}80`, `0 6px 0 ${dark}`],
+        } : {}}
+        transition={isActive ? { duration: 2, repeat: Infinity } : {}}>
+        {isComplete ? (
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+        ) : isLocked ? <LockIcon size={24} /> : <CheckpointTrophyIcon size={28} />}
+      </motion.button>
+      <span className="text-xs font-bold text-center max-w-[120px] leading-tight"
+        style={{ color: isLocked ? 'var(--muted)' : 'var(--foreground)' }}>
+        {isComplete ? `${unit.title} passed` : `${unit.title} test`}
+      </span>
+    </div>
+  )
+}
+
 // ─── unit banner ───────────────────────────────────────────────────────────────
 function UnitBanner({ title, subtitle, color, xp }: {
   title: string; subtitle: string; color: string; xp: number
@@ -288,16 +347,31 @@ function HeadphonesIcon({ active, size = 18 }: { active: boolean; size?: number 
 }
 
 // ─── skill tree ────────────────────────────────────────────────────────────────
-function SkillTreeView({ language, progress, audioOnly, onToggleAudio, onBack, onLessonStart }: {
+function SkillTreeView({ language, progress, audioOnly, onToggleAudio, onBack, onLessonStart, onReviewStart, onCheckpointStart }: {
   language: LanguageMeta; progress?: LangProgress
   audioOnly: boolean; onToggleAudio: () => void
-  onBack: () => void; onLessonStart: (lesson: Lesson) => void
+  onBack: () => void
+  onLessonStart: (lesson: Lesson) => void
+  onReviewStart: (lesson: Lesson) => void
+  onCheckpointStart: (unit: Unit) => void
 }) {
   const completed  = new Set(progress?.completedLessons ?? [])
   const totalXp    = progress?.xp ?? 0
   const allLessons = language.units.flatMap((u) => u.lessons)
-  const firstUndone = allLessons.findIndex((l) => !completed.has(l.id))
-  const activeLessonId = firstUndone >= 0 ? allLessons[firstUndone].id : null
+
+  // First undone step (lesson OR checkpoint) across all units. Checkpoints appear at the
+  // end of a unit whose lessons are all complete when a next non-locked unit exists.
+  let activeStepKey: string | null = null
+  for (let i = 0; i < language.units.length && !activeStepKey; i++) {
+    const u = language.units[i]
+    if (u.locked) continue
+    for (const l of u.lessons) {
+      if (!completed.has(l.id)) { activeStepKey = `lesson:${l.id}`; break }
+    }
+    if (activeStepKey) break
+    const hasNextUnit = language.units.slice(i + 1).some((n) => !n.locked)
+    if (hasNextUnit && !hasPassedCheckpoint(u.id)) activeStepKey = `checkpoint:${u.id}`
+  }
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
@@ -342,9 +416,18 @@ function SkillTreeView({ language, progress, audioOnly, onToggleAudio, onBack, o
       {/* Path */}
       <div className="flex-1 overflow-y-auto px-4 py-8">
         <div className="max-w-sm mx-auto flex flex-col gap-10">
+          <ReviewWeakWords langId={language.id} onStart={onReviewStart} />
           {language.units.map((unit, ui) => {
             const unitXp = unit.lessons.reduce((acc, l) => acc + (completed.has(l.id) ? l.xpReward : 0), 0)
             const globalOffset = language.units.slice(0, ui).flatMap((u) => u.lessons).length
+            const unitComplete = unit.lessons.every((l) => completed.has(l.id))
+            const hasNextUnit = language.units.slice(ui + 1).some((n) => !n.locked)
+            const checkpointPassed = hasPassedCheckpoint(unit.id)
+            const showCheckpoint = !unit.locked && unitComplete && hasNextUnit
+            const checkpointKey = `checkpoint:${unit.id}`
+            const checkpointState: NodeState = checkpointPassed
+              ? 'completed'
+              : activeStepKey === checkpointKey ? 'active' : 'locked'
             return (
               <div key={unit.id} className="flex flex-col gap-6">
                 <UnitBanner title={unit.title} subtitle={unit.subtitle} color={unit.color} xp={unitXp} />
@@ -361,7 +444,7 @@ function SkillTreeView({ language, progress, audioOnly, onToggleAudio, onBack, o
                     {unit.lessons.map((lesson, li) => {
                       const globalIdx = globalOffset + li
                       const isComp   = completed.has(lesson.id)
-                      const isActive = lesson.id === activeLessonId
+                      const isActive = activeStepKey === `lesson:${lesson.id}`
                       const state: NodeState = isComp ? 'completed' : isActive ? 'active' : 'locked'
                       const offset = SNAKE[globalIdx % SNAKE.length]
                       return (
@@ -375,13 +458,21 @@ function SkillTreeView({ language, progress, audioOnly, onToggleAudio, onBack, o
                         </div>
                       )
                     })}
+                    {showCheckpoint && (
+                      <div className="flex flex-col items-center w-full mt-6">
+                        <CheckpointNode
+                          unit={unit} state={checkpointState}
+                          onPress={() => onCheckpointStart(unit)}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )
           })}
 
-          {activeLessonId === null && allLessons.length > 0 && (
+          {activeStepKey === null && allLessons.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center gap-3 py-8">
               <div className="w-20 h-20 rounded-full flex items-center justify-center"
@@ -405,7 +496,11 @@ export function LanguagePage() {
   const [selectedLangId, setSelectedLangId] = useState<string | null>(null)
   const [progress, setProgress]             = useState<Record<string, LangProgress>>({})
   const [unlockedAch, setUnlockedAch]       = useState<Set<string>>(new Set())
-  const [activeLesson, setActiveLesson]     = useState<{ lesson: Lesson; langId: string } | null>(null)
+  const [activeLesson, setActiveLesson]     = useState<{
+    lesson: Lesson; langId: string; xpMultiplier?: number;
+    isDailyChallenge?: boolean; isReview?: boolean;
+    checkpoint?: { unitId: string };
+  } | null>(null)
   const [pendingAch, setPendingAch]         = useState<Achievement[]>([])
   const [mounted, setMounted]               = useState(false)
   const [audioOnly, setAudioOnly]           = useState(false)
@@ -431,14 +526,21 @@ export function LanguagePage() {
     localStorage.setItem(ACTIVE_KEY, langId)
   }
 
-  function handleLessonComplete(langId: string, lessonId: string, xpEarned: number, perfect: boolean) {
+  function handleLessonComplete(
+    langId: string, lessonId: string, xpEarned: number, perfect: boolean,
+    opts: { isDailyChallenge?: boolean; isReview?: boolean } = {},
+  ) {
     setProgress((prev) => {
       const existing = prev[langId] ?? { completedLessons: [], xp: 0, streak: 0 }
+      // Review lessons don't unlock anything; they only grant XP.
+      const completedLessons = opts.isReview
+        ? existing.completedLessons
+        : existing.completedLessons.includes(lessonId)
+          ? existing.completedLessons
+          : [...existing.completedLessons, lessonId]
       const updated: LangProgress = {
         ...existing,
-        completedLessons: existing.completedLessons.includes(lessonId)
-          ? existing.completedLessons
-          : [...existing.completedLessons, lessonId],
+        completedLessons,
         xp:     existing.xp + xpEarned,
         streak: existing.streak + 1,
       }
@@ -455,7 +557,26 @@ export function LanguagePage() {
       }
       return next
     })
+    if (opts.isDailyChallenge) markDailyChallengeDone()
     setActiveLesson(null)
+  }
+
+  function handleStartDaily(pick: DailyPick) {
+    const bonusLesson: Lesson = { ...pick.lesson, xpReward: pick.lesson.xpReward * 2 }
+    setActiveLesson({ lesson: bonusLesson, langId: pick.langId, xpMultiplier: 2, isDailyChallenge: true })
+  }
+
+  function handleStartCheckpoint(langId: string, unit: Unit) {
+    // Build a synthetic lesson pooling all exercises from the unit's lessons.
+    const pooledExercises = unit.lessons.flatMap((l) => l.exercises)
+    const checkpointLesson: Lesson = {
+      id: `checkpoint-${unit.id}`,
+      title: `${unit.title} Checkpoint`,
+      icon: 'conversation',
+      xpReward: 30,
+      exercises: pooledExercises,
+    }
+    setActiveLesson({ lesson: checkpointLesson, langId, checkpoint: { unitId: unit.id } })
   }
 
   const selectedLang = LANGUAGES.find((l) => l.id === selectedLangId)
@@ -510,6 +631,8 @@ export function LanguagePage() {
 
             {/* Language grid */}
             <div className="max-w-4xl mx-auto px-6 py-10">
+              <DailyLangChallenge onStart={handleStartDaily} />
+
               {Object.keys(progress).length > 0 && (
                 <div className="mb-10">
                   <h2 className="text-sm font-black uppercase tracking-widest text-[var(--muted)] mb-4">Continue Learning</h2>
@@ -558,6 +681,8 @@ export function LanguagePage() {
               onToggleAudio={toggleAudioOnly}
               onBack={() => { setSelectedLangId(null); localStorage.removeItem(ACTIVE_KEY) }}
               onLessonStart={(lesson) => setActiveLesson({ lesson, langId: selectedLang.id })}
+              onReviewStart={(lesson) => setActiveLesson({ lesson, langId: selectedLang.id, isReview: true })}
+              onCheckpointStart={(unit) => handleStartCheckpoint(selectedLang.id, unit)}
             />
           </motion.div>
         )}
@@ -572,8 +697,13 @@ export function LanguagePage() {
             newAchievements={pendingAch}
             audioOnly={audioOnly}
             trackMistakesFor={activeLesson.langId}
+            mode={activeLesson.checkpoint ? 'checkpoint' : 'lesson'}
+            checkpointUnitId={activeLesson.checkpoint?.unitId}
             onComplete={(xp, perfect) => {
-              handleLessonComplete(activeLesson.langId, activeLesson.lesson.id, xp, perfect)
+              handleLessonComplete(activeLesson.langId, activeLesson.lesson.id, xp, perfect, {
+                isDailyChallenge: activeLesson.isDailyChallenge,
+                isReview: activeLesson.isReview,
+              })
               setPendingAch([])
             }}
             onClose={() => { setActiveLesson(null); setPendingAch([]) }}
