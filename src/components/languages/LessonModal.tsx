@@ -6,6 +6,12 @@ import {
   type Lesson, type Exercise, type Achievement,
   checkTranslateAnswer, DISTRACTORS, SPEECH_LANG,
 } from './lessonData'
+import {
+  MAX_HEARTS, HEART_REFILL_COST,
+  getCurrentHearts, loseHeart, refillAllHearts,
+  bumpStreak, addDailyXp, logMistake, clearMistake,
+} from './storage'
+import { useCredits } from '@/components/layout/CreditsContext'
 
 // ─── palette ──────────────────────────────────────────────────────────────────
 const G = {
@@ -661,7 +667,7 @@ function CompletionScreen({
         {[
           { label: 'XP Earned', value: counted, color: G.yellow,
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill={G.yellow}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> },
-          { label: 'Hearts', value: `${heartsLeft}/3`, color: G.red,
+          { label: 'Hearts', value: `${heartsLeft}/${MAX_HEARTS}`, color: G.red,
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill={G.red}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg> },
           { label: 'Hints', value: hintsUsed === 0 ? '0' : `-${hintsUsed * 3} XP`, color: G.yellow,
             icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={G.yellow} strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg> },
@@ -734,11 +740,75 @@ function Heart({ filled }: { filled: boolean }) {
   )
 }
 
+// ─── out of hearts ─────────────────────────────────────────────────────────────
+function OutOfHeartsScreen({
+  credits, onRefill, onQuit,
+}: { credits: number; onRefill: () => void; onQuit: () => void }) {
+  const [msToNext, setMsToNext] = useState(0)
+  useEffect(() => {
+    const tick = () => setMsToNext(getCurrentHearts().msToNext)
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+  const canRefill = credits >= HEART_REFILL_COST
+  const minLeft = Math.max(0, Math.ceil(msToNext / 60000))
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center gap-5 py-2">
+      <div className="w-24 h-24 rounded-full flex items-center justify-center"
+        style={{ background: `${G.red}25`, border: `4px solid ${G.red}` }}>
+        <svg width="44" height="44" viewBox="0 0 24 24" fill={G.red} stroke={G.red} strokeWidth={1}>
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+      </div>
+
+      <div className="text-center">
+        <h2 className="text-2xl font-black text-[var(--foreground)]">Out of hearts</h2>
+        <p className="text-[var(--muted)] mt-1 text-sm">
+          Refill to keep going or come back later.
+        </p>
+      </div>
+
+      <button onClick={onRefill} disabled={!canRefill}
+        className="w-full py-4 rounded-2xl font-black text-lg text-white transition-all"
+        style={{
+          background: canRefill ? 'var(--accent)' : 'var(--card-border)',
+          boxShadow: canRefill ? '0 4px 0 var(--accent-hover)' : 'none',
+          cursor: canRefill ? 'pointer' : 'not-allowed',
+          color: canRefill ? 'white' : 'var(--muted)',
+        }}>
+        Refill {MAX_HEARTS} hearts — {HEART_REFILL_COST} credits
+      </button>
+      {!canRefill && (
+        <p className="text-xs font-semibold" style={{ color: G.red }}>
+          You only have {credits} credits.
+        </p>
+      )}
+
+      <div className="w-full text-center text-sm text-[var(--muted)]">
+        Or wait {minLeft > 0 ? `~${minLeft} min` : 'a bit'} for a free heart.
+      </div>
+
+      <button onClick={onQuit}
+        className="w-full py-3 rounded-2xl font-bold text-base border-2 transition-colors"
+        style={{ borderColor: 'var(--card-border)', color: 'var(--foreground)' }}>
+        Quit lesson
+      </button>
+    </motion.div>
+  )
+}
+
 // ─── main modal ────────────────────────────────────────────────────────────────
 interface Props {
   lesson: Lesson
   langCode: string
   newAchievements?: Achievement[]
+  audioOnly?: boolean
+  /** Custom exercise pool (used by Review Weak Words and Daily Challenge). Defaults to lesson.exercises. */
+  exercisePool?: Exercise[]
+  /** Mistake tracking key — if set, correctAnswer of wrong answers is logged to `cardlet-lang-mistakes[trackMistakesFor]`. */
+  trackMistakesFor?: string
   onComplete: (xpEarned: number, perfect: boolean) => void
   onClose: () => void
 }
@@ -754,11 +824,30 @@ function shuffleAndPick<T>(pool: T[], count: number): T[] {
   return arr.slice(0, count)
 }
 
-export function LessonModal({ lesson, langCode, newAchievements = [], onComplete, onClose }: Props) {
+function hasAudio(ex: Exercise): boolean {
+  if (ex.type === 'matchPairs') return false
+  if (ex.type === 'translate') return ex.promptLang === 'target'
+  // multipleChoice: target-lang audio works when the question begins with a quoted target word
+  return /^\s*["'"'«「]/.test(ex.question)
+}
+
+function correctAnswerOf(ex: Exercise): string {
+  if (ex.type === 'translate') return ex.answer
+  if (ex.type === 'multipleChoice') return ex.options[ex.correctIndex]
+  return ''
+}
+
+export function LessonModal({
+  lesson, langCode, newAchievements = [], audioOnly = false,
+  exercisePool, trackMistakesFor, onComplete, onClose,
+}: Props) {
+  const credits = useCredits()
   const [exerciseIdx, setExerciseIdx] = useState(0)
-  const [hearts, setHearts] = useState(3)
+  const [hearts, setHearts] = useState<number>(() => getCurrentHearts().hearts)
   const [hintsUsed, setHintsUsed] = useState(0)
-  const [phase, setPhase] = useState<'lesson' | 'complete'>('lesson')
+  const [phase, setPhase] = useState<'lesson' | 'complete' | 'failed'>(
+    () => (getCurrentHearts().hearts > 0 ? 'lesson' : 'failed')
+  )
   const [feedbackVisible, setFeedbackVisible] = useState(false)
   const [feedbackCorrect, setFeedbackCorrect] = useState(false)
   const [exerciseKey, setExerciseKey] = useState(0)
@@ -766,44 +855,72 @@ export function LessonModal({ lesson, langCode, newAchievements = [], onComplete
   const [finalXp, setFinalXp] = useState(0)
   const [showConfetti, setShowConfetti] = useState(false)
 
-  const exercises = useMemo(
-    () => shuffleAndPick(lesson.exercises, EXERCISES_PER_SESSION),
-    [lesson],
-  )
+  const exercises = useMemo(() => {
+    const pool = exercisePool ?? lesson.exercises
+    const filtered = audioOnly ? pool.filter(hasAudio) : pool
+    const usable = filtered.length > 0 ? filtered : pool
+    return shuffleAndPick(usable, EXERCISES_PER_SESSION)
+  }, [lesson, audioOnly, exercisePool])
   const totalExercises = exercises.length
   const currentExercise = exercises[exerciseIdx]
 
   function advance(wasCorrect: boolean) {
-    if (!wasCorrect) { setHearts((h) => Math.max(0, h - 1)); setPerfect(false) }
+    if (!wasCorrect) {
+      const newHearts = loseHeart()
+      setHearts(newHearts)
+      setPerfect(false)
+      if (trackMistakesFor) {
+        const word = correctAnswerOf(currentExercise)
+        if (word) logMistake(trackMistakesFor, word)
+      }
+      if (newHearts <= 0) {
+        setPhase('failed')
+        return
+      }
+    } else if (trackMistakesFor && currentExercise.type !== 'matchPairs') {
+      // Review mode: a correct answer decrements the mistake count
+      const word = correctAnswerOf(currentExercise)
+      if (word) clearMistake(trackMistakesFor, word)
+    }
     setFeedbackCorrect(wasCorrect)
     setFeedbackVisible(true)
+  }
+
+  function finalizeXp() {
+    const xp = Math.round(lesson.xpReward * (0.5 + (hearts / 10)) - hintsUsed * 3)
+    const clampedXp = Math.max(5, xp)
+    setFinalXp(clampedXp)
+    if (perfect) setShowConfetti(true)
+    bumpStreak()
+    addDailyXp(clampedXp)
+    setPhase('complete')
   }
 
   const handleContinue = useCallback(() => {
     setFeedbackVisible(false)
     if (exerciseIdx + 1 >= totalExercises) {
-      const xp = Math.round(lesson.xpReward * (0.5 + (hearts / 6)) - hintsUsed * 3)
-      const clampedXp = Math.max(5, xp)
-      setFinalXp(clampedXp)
-      if (perfect) setShowConfetti(true)
-      setPhase('complete')
+      finalizeXp()
     } else {
       setExerciseIdx((i) => i + 1)
       setExerciseKey((k) => k + 1)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseIdx, totalExercises, hearts, hintsUsed, perfect, lesson.xpReward])
 
   function handleMatchComplete() {
     if (exerciseIdx + 1 >= totalExercises) {
-      const xp = Math.round(lesson.xpReward * (0.5 + (hearts / 6)) - hintsUsed * 3)
-      const clampedXp = Math.max(5, xp)
-      setFinalXp(clampedXp)
-      if (perfect) setShowConfetti(true)
-      setPhase('complete')
+      finalizeXp()
     } else {
       setExerciseIdx((i) => i + 1)
       setExerciseKey((k) => k + 1)
     }
+  }
+
+  function handleRefill() {
+    if (!credits.consumeCredits(HEART_REFILL_COST)) return
+    refillAllHearts()
+    setHearts(MAX_HEARTS)
+    setPhase('lesson')
   }
 
   // Global keyboard: Space/Enter for feedback continue and completion continue
@@ -847,8 +964,11 @@ export function LessonModal({ lesson, langCode, newAchievements = [], onComplete
                 <ProgressBar current={exerciseIdx} total={totalExercises} />
               </div>
             )}
+            {phase !== 'lesson' && <div className="flex-1" />}
             <div className="flex items-center gap-0.5 shrink-0">
-              {[0, 1, 2].map((i) => <Heart key={i} filled={i < hearts} />)}
+              {Array.from({ length: MAX_HEARTS }).map((_, i) => (
+                <Heart key={i} filled={i < hearts} />
+              ))}
             </div>
           </div>
 
@@ -864,6 +984,12 @@ export function LessonModal({ lesson, langCode, newAchievements = [], onComplete
                     onContinue={() => onComplete(finalXp, perfect)}
                   />
                 </motion.div>
+              ) : phase === 'failed' ? (
+                <OutOfHeartsScreen
+                  credits={credits.credits}
+                  onRefill={handleRefill}
+                  onQuit={onClose}
+                />
               ) : (
                 <motion.div key={exerciseKey}
                   initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}

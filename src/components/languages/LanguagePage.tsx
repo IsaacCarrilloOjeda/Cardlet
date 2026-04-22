@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LANGUAGES, ACHIEVEMENTS, type LanguageMeta, type Lesson, type Achievement } from './lessonData'
 import { LessonModal } from './LessonModal'
+import { HeartsBar } from './HeartsBar'
+import { StreakGoalBar } from './StreakGoalBar'
+import { getAudioMode, setAudioMode, subscribeLangStorage } from './storage'
 
 // ─── colours ───────────────────────────────────────────────────────────────────
 const G = {
@@ -272,9 +275,22 @@ function UnitBanner({ title, subtitle, color, xp }: {
   )
 }
 
+// ─── headphones (audio mode) ───────────────────────────────────────────────────
+function HeadphonesIcon({ active, size = 18 }: { active: boolean; size?: number }) {
+  const c = active ? 'var(--accent)' : 'var(--muted)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z" />
+    </svg>
+  )
+}
+
 // ─── skill tree ────────────────────────────────────────────────────────────────
-function SkillTreeView({ language, progress, onBack, onLessonStart }: {
+function SkillTreeView({ language, progress, audioOnly, onToggleAudio, onBack, onLessonStart }: {
   language: LanguageMeta; progress?: LangProgress
+  audioOnly: boolean; onToggleAudio: () => void
   onBack: () => void; onLessonStart: (lesson: Lesson) => void
 }) {
   const completed  = new Set(progress?.completedLessons ?? [])
@@ -286,27 +302,41 @@ function SkillTreeView({ language, progress, onBack, onLessonStart }: {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--background)' }}>
       {/* Top bar */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 border-b"
-        style={{ background: 'var(--background)', borderColor: 'var(--card-border)', backdropFilter: 'blur(12px)' }}>
-        <button onClick={onBack}
-          className="rounded-full p-2 text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
-            <path d="M19 12H5M12 5l-7 7 7 7" />
-          </svg>
-        </button>
-        <div className="flex-1">
-          <p className="font-black text-base text-[var(--foreground)]">{language.name}</p>
-          <p className="text-xs text-[var(--muted)]">{language.nativeName}</p>
+      <div className="sticky top-0 z-10 flex flex-col"
+        style={{ background: 'var(--background)', backdropFilter: 'blur(12px)' }}>
+        <div className="flex items-center gap-3 px-4 py-3 border-b"
+          style={{ borderColor: 'var(--card-border)' }}>
+          <button onClick={onBack}
+            className="rounded-full p-2 text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <path d="M19 12H5M12 5l-7 7 7 7" />
+            </svg>
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-base text-[var(--foreground)] truncate">{language.name}</p>
+            <p className="text-xs text-[var(--muted)] truncate">{language.nativeName}</p>
+          </div>
+          <HeartsBar compact />
+          <button onClick={onToggleAudio}
+            title={audioOnly ? 'Turn off audio-only mode' : 'Audio-only mode'}
+            className="rounded-full p-2 transition-colors"
+            style={{
+              background: audioOnly ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'transparent',
+              border: `2px solid ${audioOnly ? 'var(--accent)' : 'var(--card-border)'}`,
+            }}>
+            <HeadphonesIcon active={audioOnly} />
+          </button>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+            <span className="text-sm font-black" style={{ color: 'var(--accent)' }}>{totalXp}</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-1 text-sm font-bold text-[var(--muted)]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+            <span style={{ color: 'var(--accent)' }}>{completed.size}</span>
+            <span>/ {allLessons.length}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-          <span className="text-sm font-black" style={{ color: 'var(--accent)' }}>{totalXp}</span>
-        </div>
-        <div className="flex items-center gap-1 text-sm font-bold text-[var(--muted)]">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
-          <span style={{ color: 'var(--accent)' }}>{completed.size}</span>
-          <span>/ {allLessons.length}</span>
-        </div>
+        <StreakGoalBar />
       </div>
 
       {/* Path */}
@@ -378,14 +408,23 @@ export function LanguagePage() {
   const [activeLesson, setActiveLesson]     = useState<{ lesson: Lesson; langId: string } | null>(null)
   const [pendingAch, setPendingAch]         = useState<Achievement[]>([])
   const [mounted, setMounted]               = useState(false)
+  const [audioOnly, setAudioOnly]           = useState(false)
 
   useEffect(() => {
     setProgress(loadProgress())
     setUnlockedAch(loadUnlocked())
     const saved = localStorage.getItem(ACTIVE_KEY)
     if (saved) setSelectedLangId(saved)
+    setAudioOnly(getAudioMode())
     setMounted(true)
+    return subscribeLangStorage(() => setAudioOnly(getAudioMode()))
   }, [])
+
+  function toggleAudioOnly() {
+    const next = !audioOnly
+    setAudioOnly(next)
+    setAudioMode(next)
+  }
 
   function handleSelectLanguage(langId: string) {
     setSelectedLangId(langId)
@@ -515,6 +554,8 @@ export function LanguagePage() {
             <SkillTreeView
               language={selectedLang}
               progress={progress[selectedLang.id]}
+              audioOnly={audioOnly}
+              onToggleAudio={toggleAudioOnly}
               onBack={() => { setSelectedLangId(null); localStorage.removeItem(ACTIVE_KEY) }}
               onLessonStart={(lesson) => setActiveLesson({ lesson, langId: selectedLang.id })}
             />
@@ -529,6 +570,8 @@ export function LanguagePage() {
             lesson={activeLesson.lesson}
             langCode={activeLesson.langId}
             newAchievements={pendingAch}
+            audioOnly={audioOnly}
+            trackMistakesFor={activeLesson.langId}
             onComplete={(xp, perfect) => {
               handleLessonComplete(activeLesson.langId, activeLesson.lesson.id, xp, perfect)
               setPendingAch([])
