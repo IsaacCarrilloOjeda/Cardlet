@@ -29,6 +29,8 @@ import {
   bulkInsertCardsAdmin,
   setUserRole,
   upsertSetRating,
+  bumpLanguageXp,
+  setLanguageXpIfGreater,
 } from '@/lib/db'
 import { computeSM2 } from '@/lib/sm2'
 import { chatComplete } from '@/lib/openrouter'
@@ -495,4 +497,73 @@ Make the flashcards educational, clear, and accurate. Difficulty: 1=easy, 3=medi
   revalidatePath('/admin/materials')
   revalidatePath('/explore')
   return { id: set.id }
+}
+
+// ─── Language leaderboard ────────────────────────────────────────────────────
+
+/**
+ * Bump a user's language XP after completing a lesson. Silent no-op for guests
+ * so offline learners don't see errors.
+ */
+export async function bumpLanguageXpAction(
+  langId: string, xpEarned: number, lessonsDelta = 1,
+): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  if (!/^[a-z]{2,8}$/.test(langId)) throw new Error('Invalid langId')
+  const xp = Math.min(10_000, Math.max(0, Math.floor(xpEarned)))
+  const lessons = Math.min(10, Math.max(0, Math.floor(lessonsDelta)))
+  await bumpLanguageXp(user.id, langId, xp, lessons)
+}
+
+/**
+ * Export a language unit's vocab as a private flashcard set. Front = target,
+ * back = English. Returns the new set id so the client can navigate to it.
+ */
+export async function exportLanguageUnitAction(
+  langName: string,
+  unitTitle: string,
+  pairs: { target: string; english: string }[],
+): Promise<{ id: string; count: number }> {
+  const user = await getAuthUser()
+  const clean = pairs
+    .filter((p) => p.target?.trim() && p.english?.trim())
+    .slice(0, 500)
+  if (clean.length === 0) throw new Error('No vocab to export')
+
+  const set = await createStudySet(user.id, {
+    title: `${langName} — ${unitTitle}`,
+    description: `${clean.length} vocabulary pairs from the ${langName} ${unitTitle} unit.`,
+    subject: langName,
+    is_public: false,
+  })
+  await bulkInsertCards(
+    set.id,
+    clean.map((p) => ({ front: p.target, back: p.english, difficulty: 2 })),
+  )
+  revalidatePath('/')
+  return { id: set.id, count: clean.length }
+}
+
+/**
+ * One-shot migration of a signed-in user's localStorage language progress to
+ * the DB. Uses GREATEST so re-running is idempotent and never shrinks totals.
+ */
+export async function migrateLanguageXpAction(
+  entries: { langId: string; xp: number; lessons: number }[],
+): Promise<{ migrated: number }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { migrated: 0 }
+  let count = 0
+  for (const e of entries.slice(0, 20)) {
+    if (!/^[a-z]{2,8}$/.test(e.langId)) continue
+    const xp = Math.min(10_000_000, Math.max(0, Math.floor(e.xp)))
+    const lessons = Math.min(1_000_000, Math.max(0, Math.floor(e.lessons)))
+    if (xp === 0 && lessons === 0) continue
+    await setLanguageXpIfGreater(user.id, e.langId, xp, lessons)
+    count++
+  }
+  return { migrated: count }
 }

@@ -739,3 +739,64 @@ export async function copySetToUser(setId: string, userId: string): Promise<Stud
 
   return newSet as StudySet
 }
+
+// ─── Language XP ─────────────────────────────────────────────────────────────
+
+export interface LanguageLeaderboardEntry {
+  user_id: string
+  display_name: string | null
+  avatar_url: string | null
+  is_private: boolean
+  role: string
+  streak: number
+  xp: number
+  lessons: number
+}
+
+export async function bumpLanguageXp(
+  userId: string, langId: string, deltaXp: number, deltaLessons = 1,
+): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('bump_language_xp', {
+    uid: userId,
+    p_lang_id: langId,
+    delta_xp: deltaXp,
+    delta_lessons: deltaLessons,
+  })
+  if (error) throw error
+}
+
+export async function setLanguageXpIfGreater(
+  userId: string, langId: string, xp: number, lessons: number,
+): Promise<void> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('set_language_xp_if_greater', {
+    uid: userId,
+    p_lang_id: langId,
+    p_xp: xp,
+    p_lessons: lessons,
+  })
+  if (error) throw error
+}
+
+export async function getLanguageLeaderboard(
+  langId: string, limit = 20,
+): Promise<LanguageLeaderboardEntry[]> {
+  const admin = createAdminClient()
+  const { data, error } = await admin.rpc('get_language_leaderboard', {
+    p_lang_id: langId, lim: limit,
+  })
+  if (error) throw error
+  return (data ?? []) as LanguageLeaderboardEntry[]
+}
+
+export async function getMyLanguageXp(userId: string): Promise<{ lang_id: string; xp: number; lessons: number }[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('language_xp')
+    .select('lang_id, xp, lessons')
+    .eq('user_id', userId)
+    .order('xp', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as { lang_id: string; xp: number; lessons: number }[]
+}

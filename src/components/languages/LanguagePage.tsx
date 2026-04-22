@@ -10,6 +10,11 @@ import { DailyLangChallenge, type DailyPick } from './DailyLangChallenge'
 import { getAudioMode, setAudioMode, subscribeLangStorage, markDailyChallengeDone, hasPassedCheckpoint } from './storage'
 import type { Unit } from './lessonData'
 import { ReviewWeakWords } from './ReviewWeakWords'
+import { bumpLanguageXpAction, migrateLanguageXpAction } from '@/lib/actions'
+import { UnitActions } from './UnitActions'
+import { LanguageStatsPanel } from './LanguageStatsPanel'
+
+const LANG_MIGRATED_KEY = 'cardlet-lang-migrated-v1'
 
 // ─── colours ───────────────────────────────────────────────────────────────────
 const G = {
@@ -431,6 +436,9 @@ function SkillTreeView({ language, progress, audioOnly, onToggleAudio, onBack, o
             return (
               <div key={unit.id} className="flex flex-col gap-6">
                 <UnitBanner title={unit.title} subtitle={unit.subtitle} color={unit.color} xp={unitXp} />
+                {!unit.locked && unitComplete && (
+                  <UnitActions langId={language.id} langName={language.name} unit={unit} />
+                )}
                 {unit.locked ? (
                   <div className="flex flex-col items-center gap-3 py-6 rounded-2xl border-2 border-dashed" style={{ borderColor: 'var(--card-border)' }}>
                     <div className="w-16 h-16 rounded-full flex items-center justify-center"
@@ -506,12 +514,29 @@ export function LanguagePage() {
   const [audioOnly, setAudioOnly]           = useState(false)
 
   useEffect(() => {
-    setProgress(loadProgress())
+    const loaded = loadProgress()
+    setProgress(loaded)
     setUnlockedAch(loadUnlocked())
     const saved = localStorage.getItem(ACTIVE_KEY)
     if (saved) setSelectedLangId(saved)
     setAudioOnly(getAudioMode())
     setMounted(true)
+
+    // One-shot migration of offline language XP to the DB. Idempotent on the
+    // server (uses GREATEST), so re-running it from another browser is safe.
+    if (!localStorage.getItem(LANG_MIGRATED_KEY)) {
+      const entries = Object.entries(loaded)
+        .map(([langId, p]) => ({ langId, xp: p.xp, lessons: p.completedLessons.length }))
+        .filter((e) => e.xp > 0 || e.lessons > 0)
+      if (entries.length > 0) {
+        migrateLanguageXpAction(entries)
+          .then(() => localStorage.setItem(LANG_MIGRATED_KEY, '1'))
+          .catch(() => {/* guest or DB down — will retry next mount */})
+      } else {
+        localStorage.setItem(LANG_MIGRATED_KEY, '1')
+      }
+    }
+
     return subscribeLangStorage(() => setAudioOnly(getAudioMode()))
   }, [])
 
@@ -558,6 +583,9 @@ export function LanguagePage() {
       return next
     })
     if (opts.isDailyChallenge) markDailyChallengeDone()
+    // Best-effort DB bump for the language leaderboard. Silent no-op for guests.
+    // Review lessons count toward XP but not lesson count (they're replayable).
+    bumpLanguageXpAction(langId, xpEarned, opts.isReview ? 0 : 1).catch(() => {})
     setActiveLesson(null)
   }
 
@@ -643,6 +671,8 @@ export function LanguagePage() {
                   </div>
                 </div>
               )}
+
+              <LanguageStatsPanel progress={progress} />
 
               <h2 className="text-sm font-black uppercase tracking-widest text-[var(--muted)] mb-4">All Languages</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

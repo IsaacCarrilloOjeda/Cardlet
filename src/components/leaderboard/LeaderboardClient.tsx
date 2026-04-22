@@ -83,9 +83,17 @@ export function LeaderboardClient({ leaders, subjects, currentMode, currentSubje
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Leaderboard</h1>
-        <p className="text-sm text-[var(--muted)] mt-1">Score = streak × 50 + sets × 30 + cards studied × 8</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Leaderboard</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">Score = streak × 50 + sets × 30 + cards studied × 8</p>
+        </div>
+        <Link
+          href="/leaderboard/languages"
+          className="shrink-0 rounded-lg border border-[var(--card-border)] px-3 py-2 text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-colors"
+        >
+          Languages →
+        </Link>
       </div>
 
       {/* Mode tabs */}

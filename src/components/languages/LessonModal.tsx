@@ -13,6 +13,7 @@ import {
   markCheckpointPassed,
 } from './storage'
 import { useCredits } from '@/components/layout/CreditsContext'
+import { pairFromExercise } from './vocab'
 
 // ─── palette ──────────────────────────────────────────────────────────────────
 const G = {
@@ -891,33 +892,8 @@ function hasAudio(ex: Exercise): boolean {
   return /^\s*["'"'«「]/.test(ex.question)
 }
 
-/**
- * Extract the {target-language word, english translation} pair an exercise is testing,
- * so the mistake tracker can rebuild reviewable MC questions later.
- * Returns null for matchPairs (the "which of 4 pairs failed" mapping isn't available here)
- * or when the direction can't be determined.
- */
-function pairFromExercise(ex: Exercise): { target: string; english: string } | null {
-  if (ex.type === 'translate') {
-    return ex.promptLang === 'target'
-      ? { target: ex.prompt, english: ex.answer }
-      : { target: ex.answer, english: ex.prompt }
-  }
-  if (ex.type === 'multipleChoice') {
-    const quote = ex.question.match(/["'"'«「]([^"'"'»」]+)["'"'»」]/)?.[1]?.trim()
-    const answer = ex.options[ex.correctIndex]
-    // "means", "mean?", "is English", "is an informal way" → quote is target, answer is english
-    const targetInQuote = /means?\b|\bmean\?|is\s+english|informal way/i.test(ex.question)
-    if (quote) {
-      return targetInQuote
-        ? { target: quote, english: answer }
-        : { target: answer, english: quote }
-    }
-    // No quote: assume "How do you say X?"-style already handled above; otherwise skip.
-    return null
-  }
-  return null
-}
+// pairFromExercise lives in vocab.ts — imported above. Kept DRY so the export
+// feature sees identical parsing semantics as the mistake tracker.
 
 export function LessonModal({
   lesson, langCode, newAchievements = [], audioOnly = false,
