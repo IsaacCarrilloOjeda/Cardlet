@@ -33,13 +33,19 @@ export function DailyChallengeCard({ card }: Props) {
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent p-5"
+      className="mb-6 rounded-2xl border p-5"
+      style={{
+        borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
+        background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent) 0%, color-mix(in srgb, var(--accent) 4%, transparent) 45%, transparent 100%)',
+      }}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xl">🌟</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
           <h3 className="font-bold text-sm">Daily Challenge</h3>
-          {done && <span className="text-[10px] uppercase tracking-wide text-green-500 font-semibold">· Done</span>}
+          {done && <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: 'var(--accent)' }}>· Done</span>}
         </div>
         <Link
           href={`/sets/${card.set_id}`}
@@ -54,7 +60,7 @@ export function DailyChallengeCard({ card }: Props) {
         tabIndex={0}
         onClick={() => setFlipped((f) => !f)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFlipped((f) => !f) } }}
-        className="relative w-full min-h-24 rounded-xl bg-[var(--card)] border border-[var(--card-border)] p-4 text-center cursor-pointer hover:border-amber-500/40 transition-colors flex items-center justify-center"
+        className="relative w-full min-h-24 rounded-xl bg-[var(--card)] border border-[var(--card-border)] p-4 text-center cursor-pointer hover:border-[var(--accent)] transition-colors flex items-center justify-center"
       >
         <AnimatePresence mode="wait">
           <motion.p
@@ -84,7 +90,10 @@ export function DailyChallengeCard({ card }: Props) {
             </button>
             <button
               onClick={markDone}
-              className="rounded-full bg-amber-500 px-3 py-1 text-[11px] font-semibold text-white hover:bg-amber-600 transition-colors"
+              className="rounded-full px-3 py-1 text-[11px] font-semibold text-white transition-colors"
+              style={{ background: 'var(--accent)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--accent-hover)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--accent)' }}
             >
               Got it ✓
             </button>

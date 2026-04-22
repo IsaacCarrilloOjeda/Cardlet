@@ -174,12 +174,11 @@ function LanguageCard({ language, progress, onSelect }: {
           {!language.available && <span className="shrink-0 mt-0.5 text-[var(--muted)]"><LockIcon size={16} /></span>}
         </div>
         {language.available ? (
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-xs text-[var(--muted)]">{language.learners}</span>
+          <div className="mt-3 flex items-center justify-end">
             {lessons > 0 ? (
               <div className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill={G.yellow}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                <span className="text-xs font-bold" style={{ color: G.yellow }}>{xp} XP</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--accent)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>{xp} XP</span>
               </div>
             ) : (
               <span className="text-xs font-bold px-2.5 py-1 rounded-full"
@@ -204,8 +203,8 @@ function LessonNode({ lesson, nodeState, unitColor, unitDarkColor, onPress }: {
   const isLocked    = nodeState === 'locked'
   const isComplete  = nodeState === 'completed'
   const isActive    = nodeState === 'active'
-  const bg   = isComplete ? G.green    : isLocked ? '#E5E5E5' : unitColor
-  const dark = isComplete ? G.greenDark : isLocked ? '#AFAFAF' : unitDarkColor
+  const bg   = isComplete ? 'var(--accent)'       : isLocked ? '#E5E5E5' : unitColor
+  const dark = isComplete ? 'var(--accent-hover)' : isLocked ? '#AFAFAF' : unitDarkColor
   const iconColor = isLocked ? '#AFAFAF' : 'white'
 
   return (
@@ -265,8 +264,8 @@ function UnitBanner({ title, subtitle, color, xp }: {
       </div>
       {xp > 0 && (
         <div className="flex items-center gap-1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={G.yellow}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-          <span className="text-sm font-black" style={{ color: G.yellow }}>{xp} XP</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+          <span className="text-sm font-black" style={{ color: 'var(--accent)' }}>{xp} XP</span>
         </div>
       )}
     </div>
@@ -299,13 +298,13 @@ function SkillTreeView({ language, progress, onBack, onLessonStart }: {
           <p className="font-black text-base text-[var(--foreground)]">{language.name}</p>
           <p className="text-xs text-[var(--muted)]">{language.nativeName}</p>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: `${G.yellow}18` }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill={G.yellow}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-          <span className="text-sm font-black" style={{ color: G.yellow }}>{totalXp}</span>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+          <span className="text-sm font-black" style={{ color: 'var(--accent)' }}>{totalXp}</span>
         </div>
         <div className="flex items-center gap-1 text-sm font-bold text-[var(--muted)]">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={G.green} strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
-          <span style={{ color: G.green }}>{completed.size}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2.5} strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+          <span style={{ color: 'var(--accent)' }}>{completed.size}</span>
           <span>/ {allLessons.length}</span>
         </div>
       </div>
@@ -337,7 +336,7 @@ function SkillTreeView({ language, progress, onBack, onLessonStart }: {
                       const offset = SNAKE[globalIdx % SNAKE.length]
                       return (
                         <div key={lesson.id} className="flex flex-col items-center w-full">
-                          {li > 0 && <div className="w-0 h-6" style={{ borderLeft: '3px dashed var(--card-border)' }} />}
+                          {li > 0 && <div className="h-6" />}
                           <div style={{ transform: `translateX(${offset}px)` }}>
                             <LessonNode lesson={lesson} nodeState={state}
                               unitColor={unit.color} unitDarkColor={unit.darkColor}
@@ -356,8 +355,8 @@ function SkillTreeView({ language, progress, onBack, onLessonStart }: {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center gap-3 py-8">
               <div className="w-20 h-20 rounded-full flex items-center justify-center"
-                style={{ background: `${G.yellow}20`, border: `3px solid ${G.yellow}` }}>
-                <svg width="36" height="36" viewBox="0 0 24 24" fill={G.yellow}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                style={{ background: 'color-mix(in srgb, var(--accent) 14%, transparent)', border: '3px solid var(--accent)' }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="var(--accent)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
               </div>
               <p className="font-black text-lg text-[var(--foreground)] text-center">
                 You&apos;ve mastered {language.name}!
@@ -437,13 +436,13 @@ export function LanguagePage() {
         {!selectedLang ? (
           <motion.div key="picker" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.22 }}>
             {/* Hero */}
-            <div className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${G.green}18 0%, var(--background) 60%)`, borderBottom: '1px solid var(--card-border)' }}>
+            <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent) 0%, var(--background) 60%)', borderBottom: '1px solid var(--card-border)' }}>
               <div className="max-w-4xl mx-auto px-6 pt-14 pb-12">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                   {/* Rat mascot */}
                   <div className="flex justify-center mb-6">
                     <div className="w-24 h-24 rounded-full flex items-center justify-center"
-                      style={{ background: `${G.green}20`, border: `3px solid ${G.green}45` }}>
+                      style={{ background: 'color-mix(in srgb, var(--accent) 14%, transparent)', border: '3px solid color-mix(in srgb, var(--accent) 30%, transparent)' }}>
                       <RatMascot size={60} />
                     </div>
                   </div>
@@ -457,12 +456,11 @@ export function LanguagePage() {
 
                   <div className="flex items-center justify-center gap-8 mt-8">
                     {[
-                      { label: 'Languages', value: '8' },
-                      { label: 'Learners',  value: '42M+' },
-                      { label: 'Lessons',   value: '22' },
+                      { label: 'Languages', value: String(LANGUAGES.length) },
+                      { label: 'Lessons',   value: String(LANGUAGES.reduce((n, l) => n + l.units.reduce((u, unit) => u + unit.lessons.length, 0), 0)) },
                     ].map((s) => (
                       <div key={s.label} className="text-center">
-                        <p className="text-2xl font-black" style={{ color: G.green }}>{s.value}</p>
+                        <p className="text-2xl font-black" style={{ color: 'var(--accent)' }}>{s.value}</p>
                         <p className="text-xs text-[var(--muted)] font-semibold uppercase tracking-wider">{s.label}</p>
                       </div>
                     ))}
@@ -498,11 +496,10 @@ export function LanguagePage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {ACHIEVEMENTS.filter((a) => unlockedAch.has(a.id)).map((a) => (
                       <div key={a.id} className="flex flex-col items-center gap-2 rounded-2xl p-4 text-center"
-                        style={{ background: `${G.yellow}12`, border: `2px solid ${G.yellow}35` }}>
+                        style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)', border: '2px solid color-mix(in srgb, var(--accent) 25%, transparent)' }}>
                         <div className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ background: `${G.yellow}25`, color: G.yellow }}>
-                          {/* reuse AchievementIcon indirectly via inline */}
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill={G.yellow}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                          style={{ background: 'color-mix(in srgb, var(--accent) 18%, transparent)', color: 'var(--accent)' }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--accent)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                         </div>
                         <p className="text-xs font-black text-[var(--foreground)]">{a.name}</p>
                         <p className="text-[10px] text-[var(--muted)] leading-tight">{a.desc}</p>

@@ -383,10 +383,12 @@ export function DashboardClient({ sets, dueCount, streak = 0, mistakeCount = 0, 
             whileHover={{ y: -4 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             onClick={() => setAddingFolder(true)}
-            className="rounded-2xl border-2 border-dashed border-[var(--card-border)] p-5 flex flex-col items-center justify-center gap-2 text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/5 transition-colors min-h-[140px]"
+            className="rounded-2xl border-2 border-dashed border-[var(--card-border)] p-5 flex flex-col items-center justify-center gap-2 text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/5 transition-colors"
           >
-            <span className="text-3xl font-light leading-none">+</span>
-            <span className="text-sm font-medium">New Subject</span>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="text-sm font-semibold">New Subject</span>
           </motion.button>
         )}
       </div>

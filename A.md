@@ -1,76 +1,141 @@
-# Feature A: Guest Study Mode (No-Account)
+# Feature A: Languages Tab — 10 New Features (Phased)
 
-> Handoff doc for a Claude Code session. Self-contained — read this, do independent exploration, then implement. Don't ask clarifying questions unless something is genuinely ambiguous.
+> Handoff doc for another Claude Code session. Self-contained — read this, explore independently, then implement phase-by-phase. Don't ask clarifying questions unless something is truly ambiguous. Deploy after each phase per root [CLAUDE.md](../CLAUDE.md) Deployment Rule: `git commit` + `git push` + `vercel --prod`.
 
 ## Why
 
-Cardlet currently requires sign-in to study a set. On school-managed Chromebooks, some districts block *all* third-party sign-in (Google OAuth + our magic-link emails both fail). Teachers who share a Cardlet set with their class hit a wall: students can view the set but can't study it. We need a no-account path so a share link is always usable.
+The Languages tab ([src/components/languages/LanguagePage.tsx](src/components/languages/LanguagePage.tsx)) is a Duolingo-style skill tree with lesson nodes, units, and basic XP. It's visually polished but shallow — you can burn through every lesson in under an hour and there's no reason to return. This doc adds 10 features that give it retention loops, real stakes, and tie it back into the rest of Cardlet (study sets, leaderboard, tutor).
 
-Scope: read-only study. No spaced repetition, no progress tracking, no AI tutor credits, no stats. Just shuffle through cards, self-grade in your head, next card.
+## Current state (what's already wired)
 
-## Current state
+- **Data model**: [src/components/languages/lessonData.ts](src/components/languages/lessonData.ts) — `LANGUAGES`, `ACHIEVEMENTS`, per-language `units[].lessons[].exercises[]`. All static TS, no DB.
+- **Progress**: stored in `localStorage` under `cardlet-lang-progress-v1` as `Record<langId, { completedLessons, xp, streak }>`. Achievements under `cardlet-lang-achievements`.
+- **Lesson runtime**: [src/components/languages/LessonModal.tsx](src/components/languages/LessonModal.tsx) — handles exercises, reports XP + perfect flag on completion.
+- **Theming**: everything now routes through `var(--accent)` / `var(--accent-hover)` from [src/components/layout/ThemeProvider.tsx](src/components/layout/ThemeProvider.tsx). The user picks accent in the settings popover in [Header.tsx](src/components/layout/Header.tsx). **Do not hardcode hex colors for UI state — always `var(--accent)`.**
+- **No emoji rule** (from user memory): use custom stroke-based SVG icons. Never use emoji in UI. Match the style in `LessonIcon` / `LockIcon` / `RatMascot` in LanguagePage.tsx.
+- **Credits system**: unified pool in [src/components/layout/CreditsContext.tsx](src/components/layout/CreditsContext.tsx). Constants: `TUTOR_FULL_COST`, `TUTOR_HALF_COST`. Any AI call must deduct credits client-side before the fetch.
+- **OpenRouter wrappers**: [src/lib/openrouter.ts](src/lib/openrouter.ts) — `chatComplete(messages, {jsonMode?})`, `chatStream(messages)`. Use these, not raw fetch.
+- **Web Speech API** is already used for pronunciation (grep `SPEECH_LANG` in lessonData.ts). Voices in `es-ES`, `fr-FR`, `de-DE`, `ja-JP`, `ko-KR`, `zh-CN`, `pt-PT`, `it-IT`.
 
-- [app/study/[setId]/page.tsx](app/study/[setId]/page.tsx) redirects unauthed users to `/login`.
-- [src/components/sets/SetDetailClient.tsx](src/components/sets/SetDetailClient.tsx) already detects guests via `isGuest` and renders a "Sign in to Study" button — this is the gate to replace.
-- [src/components/study/StudySessionClient.tsx](src/components/study/StudySessionClient.tsx) already has a **cram mode** that skips SM-2 persistence (lines ~115–119). This is the primitive to lean on for guest mode — same pattern, just forced on.
-- The SM-2 write path is `updateCardProgressAction(cardId, quality)` from `@/lib/actions` — requires authed user. Must be short-circuited for guests.
-- AI tutor chat (`AITutorChat.tsx`) consumes credits — guest mode must hide/disable it (no localStorage writes for anon users, no credits to burn).
+## Constraints that apply to every phase
 
-## What to build
+1. Every UI color that signals progress / XP / completion / active state uses `var(--accent)`. Unit banners keep their per-unit color (those are decoration, not state).
+2. No new DB tables in phases 1–2. Keep everything in localStorage. Only phase 3 touches Supabase.
+3. Each feature gets its own file when over ~80 lines. Small helpers (<40 lines) can live inline in LanguagePage.tsx.
+4. All AI calls cost credits — check the pool, deduct, show "Out of credits" state if insufficient.
+5. Preserve Next.js 16 rules — `params`/`searchParams` are Promises, must `await`.
 
-### 1. New route: `/study/[setId]/guest/page.tsx`
+---
 
-Mirror the authed version but:
-- Do **not** redirect unauthed users.
-- Require `set.is_public === true` — 404 otherwise (private sets stay private).
-- If a user IS signed in and lands here, redirect to `/study/[setId]` (the real authed route) so they don't lose their SM-2 progress silently.
-- Fetch cards via a new helper `getPublicSetCards(setId)` in `src/lib/db.ts` (no user filtering, just all cards in the set). Add this helper.
-- Render `<StudySessionClient cards={cards} setId={setId} setTitle={set.title} guestMode />`.
+## Phase 1 — Retention loops (no schema changes, ~2–3 hrs)
 
-### 2. Add `guestMode` prop to `StudySessionClient`
+### 1. Hearts / lives system
 
-- Force `cramMode=true` internally (no SM-2 writes) and hide the cram toggle (they're in guest mode, the toggle is meaningless).
-- Hide the AI Tutor button / chat entirely when `guestMode`.
-- Hide the Pomodoro timer if it writes to any user-scoped storage (check before hiding — it may be localStorage-only, in which case keep it).
-- The completion screen's "View stats" / "Study again" buttons should remain; "View stats" should link to `/sets/{setId}` (the set page) instead of `/profile`.
-- Add a small persistent banner: "Guest mode — sign in to track progress" with a link to `/login`.
+Duolingo-style: 5 hearts max, lose one on a wrong answer inside a lesson. At 0 hearts, the lesson fails — user closes the modal and has to wait (or pay credits) to retry. Refill 1 heart every 30 minutes up to 5.
 
-### 3. Wire the guest entry point
+- Store: `cardlet-lang-hearts` = `{ hearts: number, lastRefillAt: ISO }`. Compute current hearts on read: `min(5, stored + floor((now - lastRefillAt) / 30min))`.
+- New component `src/components/languages/HeartsBar.tsx` — renders 5 heart SVGs (filled / empty), shown in `SkillTreeView` top bar next to XP chip.
+- Wire into `LessonModal`: on wrong answer, decrement hearts. If hearts reach 0, close the modal with a "You ran out of hearts" screen that offers "Refill for 20 credits" or "Wait X min".
+- `perfect` flag (already passed to `handleLessonComplete`) = true only if no hearts lost *in this lesson*.
 
-In [src/components/sets/SetDetailClient.tsx](src/components/sets/SetDetailClient.tsx), the guest branch currently shows a single "Sign in to Study" button. Replace with TWO buttons side-by-side when `set.is_public`:
-- **Primary** (accent color): `Study as guest` → `/study/{set.id}/guest`
-- **Secondary** (outline): `Sign in to track progress` → `/login`
+### 2. Streak + daily XP goal bar
 
-If the set is private, keep the current "Sign in to Study" behavior — guests can't see private sets anyway.
+Two things, tightly linked — keep them in one feature:
+- **Streak**: already partially tracked (`progress[lang].streak`) but never rendered. Move to a **global** streak (not per-language) under `cardlet-lang-streak` = `{ count, lastActivityDate: YYYY-MM-DD }`. Bump when XP is earned on a new day; reset to 1 if the gap > 1 day.
+- **Daily goal**: user picks 10 / 20 / 50 XP/day (default 20). Store under `cardlet-lang-daily-goal`. Show a thin progress bar at the top of `SkillTreeView` with "12 / 20 XP today". Fills with `var(--accent)`. When it hits 100%, show a small celebration (framer-motion scale + fade).
+- Flame icon (custom SVG, stroke style) next to streak count. Grey when inactive today, `var(--accent)` when active.
 
-### 4. SEO/metadata
+### 3. Audio-only exercise filter
 
-Public study sets already have `generateMetadata` on `/sets/[id]`. The `/study/[setId]/guest` route should add its own `generateMetadata` so shared links render nicely in Google Classroom / iMessage / Discord previews. Use the set title + `Study {title} — free flashcards on Cardlet`.
+Add a toggle in the skill tree top bar: "Audio mode" (headphones SVG). When on, `LessonModal` filters exercises to only those that have audio (listen + repeat, translate-from-audio). Hide typing/matching exercises.
 
-## Files you'll touch
+- In lessonData.ts, tag exercise types that have audio support. Multiple-choice translate exercises with target-lang prompt work if we TTS the prompt.
+- Persist toggle in `localStorage` as `cardlet-lang-audio-mode`.
 
-- **New:** `app/study/[setId]/guest/page.tsx`
-- **Edit:** `src/components/study/StudySessionClient.tsx` (add `guestMode` prop, gate SM-2 writes, hide tutor/stats)
-- **Edit:** `src/components/sets/SetDetailClient.tsx` (replace guest gate with two-button guest-or-signin layout)
-- **Edit:** `src/lib/db.ts` (add `getPublicSetCards(setId)`)
-- **Possibly edit:** `src/components/study/CompletionScreen.tsx` (accept `guestMode` prop, adjust post-study links)
+---
 
-## Guardrails (don't violate these)
+## Phase 2 — Content depth (~3–4 hrs, still localStorage)
 
-- **No writes to Supabase for anon users** — any Server Action call from the guest session will throw since RLS blocks anon inserts. Short-circuit at the client before calling, don't rely on RLS to reject.
-- **Don't let authed users accidentally study a set via the guest route and lose SM-2 updates.** Hence the redirect-if-authed in the guest page.
-- **No emoji in new UI** — use custom stroke SVGs. See other recent components for the style.
-- **Keep private sets private.** Guest route must 404 on private sets, even if the setId is known.
-- **Follow Next.js 16 rules:** `params` is `Promise<{...}>` and must be `await`-ed.
+### 4. Real Daily Challenge (language version)
 
-## Verification
+The dashboard already has [src/components/dashboard/DailyChallengeCard.tsx](src/components/dashboard/DailyChallengeCard.tsx) that picks one card from the user's sets. Build the language analog:
 
-1. Sign out. Visit a public set, click "Study as guest". Verify study session loads with no redirect to `/login`.
-2. During study, tap "Know" / "Struggling" / "Don't Know" for a few cards. Sign in → check that your SM-2 review queue is **unchanged** (guest session wrote nothing).
-3. Visit `/study/{public-set-id}/guest` while signed in → should redirect to `/study/{public-set-id}` (authed).
-4. Visit `/study/{private-set-id}/guest` → 404.
-5. Click "Share to Classroom" on a public set from an incognito window — open the shared link, verify a student can immediately study without sign-in.
+- One "bonus lesson" per day per user, surfaced at the top of the language picker (hero area). Rewards 2× XP.
+- Selection: pick one *completed* lesson from the user's active language at random, seeded by the date so it's stable across refreshes. If the user has no completed lessons, pick the first available lesson (promoted to daily challenge as the "getting started" nudge).
+- Store `cardlet-lang-daily-done-YYYY-MM-DD` = `true` once finished. Reset at local midnight.
+- Use `var(--accent)` for the card border/glow, matching the existing daily challenge card style.
 
-## Deploy (per [C:\Users\carro\CLAUDE.md](C:/Users/carro/CLAUDE.md) rule)
+### 5. Checkpoint test between units
 
-After implementation: `git add` → `git commit` → `git push` → `vercel --prod`. No confirmation needed.
+Currently Unit 2+ shows "Coming soon" when locked. Replace that with a **checkpoint** — a 10-question quiz pulling questions from all lessons in the completed unit. Passing (≥80%) unlocks the next unit. Failing keeps it locked; retry costs 1 heart.
+
+- New component `src/components/languages/CheckpointModal.tsx`. Reuses exercise types from `lessonData.ts`.
+- Unit lock logic moves from `unit.locked` static flag to a derived `isUnitComplete(unitId, progress) && passedCheckpoint(unitId)`.
+- Store passed checkpoints: `cardlet-lang-checkpoints` = `{ [unitId]: passedAt }`.
+
+### 6. Review weak words
+
+A per-language auto-generated lesson of 10 words the user got wrong most. Replaces nothing — adds a button at the top of each language's skill tree: "Review weak words (12)" that opens a LessonModal with a generated exercise list.
+
+- Tracking: on every wrong answer in LessonModal, log the `correctAnswer` (the target-language word) to `cardlet-lang-mistakes` = `Record<langId, Record<word, count>>`.
+- The generator: sort by count desc, take top 10, build multipleChoice exercises with distractors from `DISTRACTORS[langId]`.
+- On a correct answer during review, decrement count (min 0). When a word hits 0, remove it from the mistake map.
+
+---
+
+## Phase 3 — DB-backed + AI (~4–6 hrs, touches Supabase)
+
+### 7. Language leaderboard
+
+Cardlet already has a leaderboard feature (see memory `project_leaderboard_features.md`). Extend it for languages.
+
+- New migration `008_language_xp.sql`: table `language_xp (user_id uuid, lang_id text, xp integer default 0, updated_at timestamptz, primary key (user_id, lang_id))`.
+- Server action `updateLanguageXpAction(langId, xpDelta)` in [src/lib/actions.ts](src/lib/actions.ts) — upserts `language_xp` with `xp = xp + xpDelta`. Call from `handleLessonComplete` whenever the user is authed.
+- New route `app/leaderboard/languages/page.tsx` — weekly XP ranking per language (tabs: Spanish / French / German). Filters: Friends only (existing friends system), Global.
+- Respects the existing privacy toggle from memory: users opted out of leaderboard don't show up.
+- Migrate existing localStorage XP to DB on first login via a one-shot effect in LanguagePage (key `cardlet-lang-migrated-v1`).
+
+### 8. Export vocab to Cardlet flashcard sets
+
+"Save this unit as a study set" button on each unit banner. Extracts all word pairs from the unit's `matchPairs` + `translate` exercises → creates a real `study_sets` row + `cards` rows via `createStudySetAction` + `bulkInsertCards`.
+
+- Use existing [src/lib/actions.ts](src/lib/actions.ts) helpers — do not write a new code path for set creation.
+- Auto-tag the set with the language name as a folder (e.g. "French Unit 1" in folder "French").
+- If the user is a guest, prompt sign-in first.
+
+### 9. AI conversation mode
+
+For completed units only. Opens a chat where the user converses with an AI tutor *in the target language* about a topic relevant to the unit (greetings, food, family, etc.). AI grades grammar + vocab use at the end.
+
+- New route `app/languages/[lang]/chat/[unitId]/page.tsx` → client component `LanguageChatClient`.
+- System prompt: "You are a friendly $LANG tutor. Speak only in $LANG at CEFR A1–A2 level. Keep replies to 1–2 sentences. After 8 user turns, end the chat and output a JSON summary of mistakes and a 0–100 fluency score."
+- Streaming via `chatStream()` from [src/lib/openrouter.ts](src/lib/openrouter.ts).
+- Cost: `TUTOR_HALF_COST` (5 credits) per user turn — cheap enough to encourage use.
+- On completion, award 50 XP (3× a normal lesson) as the reward for depth.
+
+### 10. Language profile / skills dashboard
+
+A new tab inside each language: "Stats". Shows:
+- Time spent per unit (estimate from lesson completions × avg lesson duration)
+- Strongest / weakest word categories (pulled from `cardlet-lang-mistakes`)
+- XP history — simple bar chart, last 14 days. Reuse [src/components/profile/ActivityHeatmap.tsx](src/components/profile/ActivityHeatmap.tsx) pattern if it generalizes, otherwise a standalone component.
+- Earned achievements grid (reuse the one in LanguagePage).
+- Share button — canvas-to-image render of a stat card for social sharing (`html2canvas` already a dep in `rcconcrete-website`, but not here — either add it or use native canvas).
+
+---
+
+## Wrap-up per phase
+
+After each phase:
+1. Run `npm run build` locally to verify typecheck.
+2. Manual smoke: start a lesson, finish it, confirm XP/streak/hearts reflect correctly.
+3. `git add -A && git commit -m "feat(languages): <phase name>"` → `git push` → `vercel --prod`.
+4. Update the feature list at the top of this file to strike through completed items.
+
+## Anti-patterns — do NOT
+
+- ❌ Don't import Framer Motion into new files unless animation is core to the feature — use CSS transitions where possible. The bundle is already heavy.
+- ❌ Don't add a new localStorage key namespace — everything languages-related uses the `cardlet-lang-*` prefix.
+- ❌ Don't rebuild the skill tree layout — the SNAKE offsets + unit banners are tuned. Extend, don't replace.
+- ❌ Don't add per-language color preferences — the accent is global, set via ThemeProvider. Respect it.
+- ❌ Don't write fake stats anywhere. If a count can't be computed from real data, don't show it.
