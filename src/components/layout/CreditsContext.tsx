@@ -30,7 +30,7 @@ interface CreditsContextValue extends Credits {
 }
 
 const BUNDLE = 100
-const DEFAULT: Credits = { credits: 100, totalCredits: 100 }
+const DEFAULT: Credits = { credits: 500, totalCredits: 500 } // Changed from 100 to 500
 
 const RESET_KEY = 'ss_credits_reset'
 
@@ -70,7 +70,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) setCredits(JSON.parse(stored))
 
-      // Monthly reset: free users get 100 credits on the 1st of each month
+      // Monthly reset: users get 500 credits on the 1st of each month
       const now = new Date()
       const resetRaw = localStorage.getItem(RESET_KEY)
       const lastReset = resetRaw ? JSON.parse(resetRaw) : null
@@ -79,7 +79,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
         lastReset.year < now.getFullYear() ||
         (lastReset.year === now.getFullYear() && lastReset.month < now.getMonth())
       if (isNewMonth) {
-        const fresh: Credits = { credits: 100, totalCredits: 100 }
+        const fresh: Credits = { credits: 500, totalCredits: 500 } // Changed from 100 to 500
         localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh))
         localStorage.setItem(RESET_KEY, JSON.stringify({ month: now.getMonth(), year: now.getFullYear() }))
         setCredits(fresh)
@@ -93,6 +93,8 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   }
 
   function addCredits(amount: number = BUNDLE) {
+    // This function is kept for compatibility but will be effectively disabled
+    // in the credits purchase page
     save({
       credits: credits.credits + amount,
       totalCredits: credits.totalCredits + amount,
